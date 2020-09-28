@@ -165,7 +165,7 @@ static void Serial_Handler(void)
     Serial.IrqHandler();
 }
 
-SAMSerial Serial( (Usart*) USART3, PIN_SERIAL_RX, PIN_SERIAL_TX, Serial_Handler, 0);
+SAMSerial Serial( (Usart*) USART3, PIN_SERIAL_RX, PIN_SERIAL_TX, Serial_Handler);
 
 // Serial1 Interrupt handler
 static void Serial1_Handler(void)
@@ -173,7 +173,7 @@ static void Serial1_Handler(void)
     Serial1.IrqHandler();
 }
 
-SAMSerial Serial1( (Usart*) USART4, PIN_SERIAL1_RX, PIN_SERIAL1_TX, Serial1_Handler, 0);
+SAMSerial Serial1( (Usart*) USART4, PIN_SERIAL1_RX, PIN_SERIAL1_TX, Serial1_Handler);
 
 // Serial2 Interrupt handler
 static void Serial2_Handler(void)
@@ -181,7 +181,7 @@ static void Serial2_Handler(void)
     Serial2.IrqHandler();
 }
 
-SAMSerial Serial2( (Usart*) USART6, PIN_SERIAL2_RX, PIN_SERIAL2_TX, Serial2_Handler, 0);
+SAMSerial Serial2( (Usart*) USART6, PIN_SERIAL2_RX, PIN_SERIAL2_TX, Serial2_Handler);
 
 /*
  * Serial Event handler

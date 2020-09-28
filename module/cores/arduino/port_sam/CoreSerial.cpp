@@ -25,13 +25,15 @@
 #include "driver_init.h"
 #include "hpl_pmc.h"
 #include "hpl_usart_async.h"
+#include "variant.h"
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-SAMSerial::SAMSerial(Usart *pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void), uint32_t isUART)
+SAMSerial::SAMSerial(Usart *pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void))
 {
     _usart=pUsart;
     _flexcom = (Flexcom *)((uint32_t)_usart - 0x200U);
+
     _ulPinRX=g_aPinMap[pinRX].ulPin;
     _ulPinTX=g_aPinMap[pinTX].ulPin;
 
@@ -39,15 +41,12 @@ SAMSerial::SAMSerial(Usart *pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_h
     _ulPinTXMux=g_aPinMap[pinTX].ulPinType;
 
     _irq_handler= irq_handler;
-
-    _isUART=isUART;
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
 
-int SAMSerial::initClockNVIC(void)
+int SAMSerial::_init(void)
 {
-    
     _uc_clockId = 0;
     _IdNVIC = static_cast<IRQn_Type>(_usart_get_irq_num(_usart));
     
@@ -73,7 +72,6 @@ int SAMSerial::initClockNVIC(void)
     gpio_set_pin_function(_ulPinTX, _ulPinTXMux);
   
     struct _usart_async_device dev;
-  
     _usart_async_init(&dev, _flexcom);
   
     return 0L;
@@ -81,92 +79,106 @@ int SAMSerial::initClockNVIC(void)
 
 void SAMSerial::init(const uint32_t ulBaudrate, const UARTModes mode)
 {
-    uint32_t ulRegister=0;
+    uint32_t mr = 0;
+    uint32_t brgr = 0;
+    uint32_t baud_cd = 0;
+    uint32_t baud_fp = 0;
 
-    // Enable UART interrupt in NVIC
-    initClockNVIC();
+    // peripheral clock and interrupt setup
+    int ret = _init();
+    
+    // Business as usual
+    if (ret == 0) 
+    {
+        // Configure mode
+        switch ( mode & HARDSER_PARITY_MASK)
+        {
+            case HARDSER_PARITY_ODD:
+            mr|=US_MR_PAR_ODD;
+            break;
+                
+            case HARDSER_PARITY_NONE:
+            mr|=US_MR_PAR_NO;
+            break;
+                
+            default:
+            mr |= US_MR_PAR_EVEN;
+        }
+            
+        switch ( mode & HARDSER_STOP_BIT_MASK)
+        {
+            case HARDSER_STOP_BIT_1_5:
+            mr|=US_MR_NBSTOP_1_5_BIT;
+            break;
+                
+            case HARDSER_STOP_BIT_2:
+            mr|=US_MR_NBSTOP_2_BIT;
+            break;
+                
+            default:
+            mr|=US_MR_NBSTOP_1_BIT;
+        }
 
-    //#if SAMG55_SERIES
-    //_flexcom->FLEXCOM_MR = FLEXCOM_MR_OPMODE_USART;
-    //_usart->US_WPMR = US_WPMR_WPKEY_PASSWD;
-    //#endif
-    //
-    //// Disable PDC channel
-    //_usart->US_PTCR = US_PTCR_RXTDIS | US_PTCR_TXTDIS;
-    //
-    //// Reset and disable receiver and transmitter
-    //_usart->US_CR = US_CR_RSTRX | US_CR_RSTTX | US_CR_RXDIS | US_CR_TXDIS;
-    //
-    //// Configure mode
-    //switch ( mode & HARDSER_PARITY_MASK)
-    //{
-        //case HARDSER_PARITY_EVEN:
-            //ulRegister|=US_MR_PAR_EVEN;
-            //break;
-        //
-        //case HARDSER_PARITY_ODD:
-            //ulRegister|=US_MR_PAR_ODD;
-            //break;
-        //
-        //case HARDSER_PARITY_NONE:
-            //ulRegister|=US_MR_PAR_NO;
-            //break;
-    //}
-    //
-    //switch ( mode & HARDSER_STOP_BIT_MASK)
-    //{
-        //case HARDSER_STOP_BIT_1:
-            //ulRegister|=US_MR_NBSTOP_1_BIT;
-            //break;
-    //
-        //case HARDSER_STOP_BIT_1_5:
-            //ulRegister|=US_MR_NBSTOP_1_5_BIT;
-            //break;
-    //
-        //case HARDSER_STOP_BIT_2:
-            //ulRegister|=US_MR_NBSTOP_2_BIT;
-            //break;
-    //}
-    //
-    ///* UART has Character Length fixed to 8bits */
-    //if ( _isUART == 0)
-    //{
-        //switch ( mode & HARDSER_DATA_MASK)
-        //{
-            //case HARDSER_DATA_5:
-                //ulRegister|=US_MR_CHRL_5_BIT;
-                //break;
-    //
-            //case HARDSER_DATA_6:
-                //ulRegister|=US_MR_CHRL_6_BIT;
-                //break;
-    //
-            //case HARDSER_DATA_7:
-                //ulRegister|=US_MR_CHRL_7_BIT;
-                //break;
-    //
-            //case HARDSER_DATA_8:
-                //ulRegister|=US_MR_CHRL_8_BIT;
-                //break;
-        //}
-    //}
-    //
-    //_usart->US_MR = ulRegister;
-    //
-    //// Configure baudrate (asynchronous, no oversampling)
-    //// CD = (Peripheral clock) / (baudrate * 16)
-    //_usart->US_BRGR = (SystemCoreClock / ulBaudrate) >> 4;
+        /* UART has Character Length fixed to 8bits */
+        switch ( mode & HARDSER_DATA_MASK)
+        {
+            case HARDSER_DATA_5:
+            mr|=US_MR_CHRL_5_BIT;
+            break;
+                
+            case HARDSER_DATA_6:
+            mr|=US_MR_CHRL_6_BIT;
+            break;
+                
+            case HARDSER_DATA_7:
+            mr|=US_MR_CHRL_7_BIT;
+            break;
+                
+            default:
+            mr|=US_MR_CHRL_8_BIT;
+        }
 
-    // Configure interrupts
-    _usart->US_IDR = 0xFFFFFFFF;
-    _usart->US_IER = US_IER_RXRDY | US_IER_OVRE | US_IER_FRAME;
+        //// Some extra USART settings
+        //mr |= US_MR_USART_MODE(0);
+        //mr |= US_MR_USCLKS(0);
+        //mr |= (0 << US_MR_SYNC_Pos);
+        //mr |= US_MR_CHMODE(0);
+        //mr |= (0 << US_MR_MSBF_Pos);
+        //mr |= (0 << US_MR_MODE9_Pos);
+        //mr |= (0 << US_MR_CLKO_Pos);
+        #define CONF_USART_OVER         0
+        //mr |= (CONF_USART_OVER << US_MR_OVER_Pos);
+        mr |= (1 << US_MR_INACK_Pos);
+        //mr |= (0 << US_MR_DSNACK_Pos);
+        //mr |= (0 << US_MR_INVDATA_Pos);
+        //mr |= US_MR_MAX_ITERATION(0);
+        //mr |= (0 << US_MR_FILTER_Pos);
+            
+        // Calculate baud rate register value
+        baud_cd = ((VARIANT_MCK) / ulBaudrate / 8 / (2 - CONF_USART_OVER));
+        baud_fp = ((VARIANT_MCK) / ulBaudrate / (2 - CONF_USART_OVER) - 8 * baud_cd);
+        brgr |= US_BRGR_CD(baud_cd);
+        brgr |= US_BRGR_FP(baud_fp);
+            
+        // Write registers
+        _usart->US_MR = mr;
+        _usart->US_BRGR = brgr;
 
-    // Make sure both ring buffers are initialized back to empty.
-    _rx_buffer.clear();
-    _tx_buffer.clear();
+        // Configure interrupts
+        _usart->US_IDR = 0xFFFFFFFF;
+        _usart->US_IER = US_IER_RXRDY | US_IER_OVRE | US_IER_FRAME;
 
-    // Enable receiver and transmitter
-    _usart->US_CR = US_CR_RXEN | US_CR_TXEN;
+        // Make sure both ring buffers are initialized back to empty.
+        _rx_buffer.clear();
+        _tx_buffer.clear();
+
+        // Enable receiver and transmitter
+        _usart->US_CR = US_CR_RXEN | US_CR_TXEN;
+    }
+    else
+    {
+        // Houston we got a problem
+    }   
 }
 
 void SAMSerial::begin(const uint32_t ulBaudrate)
@@ -188,7 +200,7 @@ void SAMSerial::end( void )
     flush();
 
     // Disable all UART interrupts
-    _usart->US_IER=0;
+    _usart->US_IER = 0;
 
     // Disable UART interrupt in NVIC
     NVIC_DisableIRQ(_IdNVIC);

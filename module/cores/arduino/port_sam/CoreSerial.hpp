@@ -29,7 +29,7 @@
 class SAMSerial : public HardwareSerial
 {
   public:
-    SAMSerial(Usart* pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void), uint32_t isUART=0);
+    SAMSerial(Usart* pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void));
 
     void begin(const uint32_t dwBaudRate);
     void begin(const uint32_t dwBaudRate, const UARTModes config);
@@ -52,7 +52,7 @@ class SAMSerial : public HardwareSerial
   protected:
     void init(const uint32_t dwBaudRate, const UARTModes ulMode);
     // peripheral clock and interrupt setup
-    int initClockNVIC(void);
+    int _init(void);
 
     RingBuffer _rx_buffer;
     RingBuffer _tx_buffer;
@@ -65,7 +65,6 @@ class SAMSerial : public HardwareSerial
     EGPIOType _ulPinTXMux;
     IRQn_Type _IdNVIC;
     uint8_t _uc_clockId;
-    boolean _isUART;
     void (*_irq_handler)(void);
 };
 
