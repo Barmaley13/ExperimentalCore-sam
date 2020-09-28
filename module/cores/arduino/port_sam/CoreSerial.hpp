@@ -29,10 +29,10 @@
 class SAMSerial : public HardwareSerial
 {
   public:
-    SAMSerial(Usart* pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void));
+    SAMSerial(Usart* usart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void));
 
-    void begin(const uint32_t dwBaudRate);
-    void begin(const uint32_t dwBaudRate, const UARTModes config);
+    void begin(const uint32_t baudRate);
+    void begin(const uint32_t baudRate, const UARTModes config);
     void end(void);
     int available(void);
     int availableForWrite(void);
@@ -50,21 +50,21 @@ class SAMSerial : public HardwareSerial
     operator bool() { return true; }; // UART always active
 
   protected:
-    void init(const uint32_t dwBaudRate, const UARTModes ulMode);
-    // peripheral clock and interrupt setup
-    int _init(void);
+    void init(const uint32_t baudRate, const UARTModes ulMode);
 
     RingBuffer _rx_buffer;
     RingBuffer _tx_buffer;
 	
-	Flexcom* _flexcom;
-    Usart* _usart;
-    uint32_t _ulPinRX;
-    EGPIOType _ulPinRXMux;
-    uint32_t _ulPinTX;
-    EGPIOType _ulPinTXMux;
-    IRQn_Type _IdNVIC;
-    uint8_t _uc_clockId;
+    Usart* _usart;	
+    Flexcom* _flexcom;
+    
+    uint32_t _pinRX;
+    uint32_t _pinTX;    
+    EGPIOType _pinRXMux;    
+    EGPIOType _pinTXMux;
+
+    IRQn_Type _irqn;
+    uint8_t _clockId;
     void (*_irq_handler)(void);
 };
 

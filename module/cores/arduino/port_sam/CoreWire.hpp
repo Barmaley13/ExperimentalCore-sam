@@ -79,14 +79,14 @@ class TwoWire : public Stream
   private:
     // TWI instance
     Twi *_pTwi;
-    uint8_t _uc_clockId;
+    uint8_t _clockId;
 
     uint8_t _uc_pinSDA;
     EGPIOType _uc_pinSDA_mux;
     uint8_t _uc_pinSCL;
     EGPIOType _uc_pinSCL_mux;
 
-    IRQn_Type _IdNVIC;
+    IRQn_Type _irqn;
     void (*_irq_handler)(void);
 
     // RX Buffer

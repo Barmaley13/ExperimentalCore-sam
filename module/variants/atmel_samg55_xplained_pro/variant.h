@@ -125,7 +125,6 @@ static const uint8_t A3  = PIN_A3 ;
 #define SPI_INTERFACES_COUNT 1
 
 #define SPI_INTERFACE        SPI7
-#define SPI_INTERFACE_ID     ID_FLEXCOM7
 #define SPI_CHANNELS_NUM     2
 
 #define PIN_SPI_MOSI         (30ul)

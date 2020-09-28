@@ -7,7 +7,7 @@
 
 #include "core_variant.h"
 
-const uint8_t FlexcomIds[NUM_FLEXCOM] = {
+const uint8_t FLEXCOM_IDS[NUM_FLEXCOM] = {
 	#if (SAM4S_SERIES || SAM4E_SERIES)
 		ID_FLEXCOM0, ID_FLEXCOM1
 	#elif SAM3XA_SERIES

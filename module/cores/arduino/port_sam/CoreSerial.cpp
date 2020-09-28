@@ -29,166 +29,151 @@
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-SAMSerial::SAMSerial(Usart *pUsart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void))
+SAMSerial::SAMSerial(Usart *usart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void))
 {
-    _usart=pUsart;
+    _usart=usart;
     _flexcom = (Flexcom *)((uint32_t)_usart - 0x200U);
 
-    _ulPinRX=g_aPinMap[pinRX].ulPin;
-    _ulPinTX=g_aPinMap[pinTX].ulPin;
+    _pinRX=g_aPinMap[pinRX].ulPin;
+    _pinTX=g_aPinMap[pinTX].ulPin;
 
-    _ulPinRXMux=g_aPinMap[pinRX].ulPinType;
-    _ulPinTXMux=g_aPinMap[pinTX].ulPinType;
+    _pinRXMux=g_aPinMap[pinRX].ulPinType;
+    _pinTXMux=g_aPinMap[pinTX].ulPinType;
+    
+    _irqn = static_cast<IRQn_Type>(_usart_get_irq_num(_usart));
+    _clockId = 0;
 
     _irq_handler= irq_handler;
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
-
-int SAMSerial::_init(void)
-{
-    _uc_clockId = 0;
-    _IdNVIC = static_cast<IRQn_Type>(_usart_get_irq_num(_usart));
-    
-    uint8_t usart_index;
-    usart_index = _usart_get_hardware_index(_usart);
-
-    // We got a problem here
-    if (_IdNVIC == 0 || usart_index >= NUM_FLEXCOM)
-    {
-	    // Dummy init to intercept potential error later
-	    _IdNVIC = HardFault_IRQn;  
-	    return -1L;
-    }
-
-    // Dynamic assignment of IRQ handler
-    vectorAssign(_IdNVIC, _irq_handler);
-
-    // Activate Serial peripheral clock
-    _uc_clockId = FlexcomIds[usart_index];
-    _pmc_enable_periph_clock(_uc_clockId);
-
-    gpio_set_pin_function(_ulPinRX, _ulPinRXMux);
-    gpio_set_pin_function(_ulPinTX, _ulPinTXMux);
-  
-    struct _usart_async_device dev;
-    _usart_async_init(&dev, _flexcom);
-  
-    return 0L;
-}
-
-void SAMSerial::init(const uint32_t ulBaudrate, const UARTModes mode)
+void SAMSerial::init(const uint32_t baudRate, const UARTModes mode)
 {
     uint32_t mr = 0;
     uint32_t brgr = 0;
     uint32_t baud_cd = 0;
     uint32_t baud_fp = 0;
 
-    // peripheral clock and interrupt setup
-    int ret = _init();
-    
-    // Business as usual
-    if (ret == 0) 
+    // Figure out IRQn and clock ID
+    uint8_t usartIndex = _usart_get_hardware_index(_usart);
+
+    // We got a problem here
+    if (_irqn == 0 || usartIndex >= NUM_FLEXCOM)
     {
-        // Configure mode
-        switch ( mode & HARDSER_PARITY_MASK)
-        {
-            case HARDSER_PARITY_ODD:
-            mr|=US_MR_PAR_ODD;
-            break;
-                
-            case HARDSER_PARITY_NONE:
-            mr|=US_MR_PAR_NO;
-            break;
-                
-            default:
-            mr |= US_MR_PAR_EVEN;
-        }
-            
-        switch ( mode & HARDSER_STOP_BIT_MASK)
-        {
-            case HARDSER_STOP_BIT_1_5:
-            mr|=US_MR_NBSTOP_1_5_BIT;
-            break;
-                
-            case HARDSER_STOP_BIT_2:
-            mr|=US_MR_NBSTOP_2_BIT;
-            break;
-                
-            default:
-            mr|=US_MR_NBSTOP_1_BIT;
-        }
-
-        /* UART has Character Length fixed to 8bits */
-        switch ( mode & HARDSER_DATA_MASK)
-        {
-            case HARDSER_DATA_5:
-            mr|=US_MR_CHRL_5_BIT;
-            break;
-                
-            case HARDSER_DATA_6:
-            mr|=US_MR_CHRL_6_BIT;
-            break;
-                
-            case HARDSER_DATA_7:
-            mr|=US_MR_CHRL_7_BIT;
-            break;
-                
-            default:
-            mr|=US_MR_CHRL_8_BIT;
-        }
-
-        //// Some extra USART settings
-        //mr |= US_MR_USART_MODE(0);
-        //mr |= US_MR_USCLKS(0);
-        //mr |= (0 << US_MR_SYNC_Pos);
-        //mr |= US_MR_CHMODE(0);
-        //mr |= (0 << US_MR_MSBF_Pos);
-        //mr |= (0 << US_MR_MODE9_Pos);
-        //mr |= (0 << US_MR_CLKO_Pos);
-        #define CONF_USART_OVER         0
-        //mr |= (CONF_USART_OVER << US_MR_OVER_Pos);
-        mr |= (1 << US_MR_INACK_Pos);
-        //mr |= (0 << US_MR_DSNACK_Pos);
-        //mr |= (0 << US_MR_INVDATA_Pos);
-        //mr |= US_MR_MAX_ITERATION(0);
-        //mr |= (0 << US_MR_FILTER_Pos);
-            
-        // Calculate baud rate register value
-        baud_cd = ((VARIANT_MCK) / ulBaudrate / 8 / (2 - CONF_USART_OVER));
-        baud_fp = ((VARIANT_MCK) / ulBaudrate / (2 - CONF_USART_OVER) - 8 * baud_cd);
-        brgr |= US_BRGR_CD(baud_cd);
-        brgr |= US_BRGR_FP(baud_fp);
-            
-        // Write registers
-        _usart->US_MR = mr;
-        _usart->US_BRGR = brgr;
-
-        // Configure interrupts
-        _usart->US_IDR = 0xFFFFFFFF;
-        _usart->US_IER = US_IER_RXRDY | US_IER_OVRE | US_IER_FRAME;
-
-        // Make sure both ring buffers are initialized back to empty.
-        _rx_buffer.clear();
-        _tx_buffer.clear();
-
-        // Enable receiver and transmitter
-        _usart->US_CR = US_CR_RXEN | US_CR_TXEN;
-    }
-    else
-    {
+        // Dummy init to intercept potential error later
+        _irqn = HardFault_IRQn;
+        
         // Houston we got a problem
-    }   
+        return;
+    }
+
+    // Dynamic assignment of IRQ handler
+    vectorAssign(_irqn, _irq_handler);
+
+    // Activate Serial peripheral clock
+    _clockId = FLEXCOM_IDS[usartIndex];
+    _pmc_enable_periph_clock(_clockId);
+
+    gpio_set_pin_function(_pinRX, _pinRXMux);
+    gpio_set_pin_function(_pinTX, _pinTXMux);
+    
+    struct _usart_async_device dev;
+    _usart_async_init(&dev, _flexcom);
+    
+    // Configure mode
+    switch ( mode & HARDSER_PARITY_MASK)
+    {
+        case HARDSER_PARITY_ODD:
+        mr|=US_MR_PAR_ODD;
+        break;
+                
+        case HARDSER_PARITY_NONE:
+        mr|=US_MR_PAR_NO;
+        break;
+                
+        default:
+        mr |= US_MR_PAR_EVEN;
+    }
+            
+    switch ( mode & HARDSER_STOP_BIT_MASK)
+    {
+        case HARDSER_STOP_BIT_1_5:
+        mr|=US_MR_NBSTOP_1_5_BIT;
+        break;
+                
+        case HARDSER_STOP_BIT_2:
+        mr|=US_MR_NBSTOP_2_BIT;
+        break;
+                
+        default:
+        mr|=US_MR_NBSTOP_1_BIT;
+    }
+
+    /* UART has Character Length fixed to 8bits */
+    switch ( mode & HARDSER_DATA_MASK)
+    {
+        case HARDSER_DATA_5:
+        mr|=US_MR_CHRL_5_BIT;
+        break;
+                
+        case HARDSER_DATA_6:
+        mr|=US_MR_CHRL_6_BIT;
+        break;
+                
+        case HARDSER_DATA_7:
+        mr|=US_MR_CHRL_7_BIT;
+        break;
+                
+        default:
+        mr|=US_MR_CHRL_8_BIT;
+    }
+
+    //// Some extra USART settings
+    //mr |= US_MR_USART_MODE(0);
+    //mr |= US_MR_USCLKS(0);
+    //mr |= (0 << US_MR_SYNC_Pos);
+    //mr |= US_MR_CHMODE(0);
+    //mr |= (0 << US_MR_MSBF_Pos);
+    //mr |= (0 << US_MR_MODE9_Pos);
+    //mr |= (0 << US_MR_CLKO_Pos);
+    #define CONF_USART_OVER         0
+    //mr |= (CONF_USART_OVER << US_MR_OVER_Pos);
+    mr |= (1 << US_MR_INACK_Pos);
+    //mr |= (0 << US_MR_DSNACK_Pos);
+    //mr |= (0 << US_MR_INVDATA_Pos);
+    //mr |= US_MR_MAX_ITERATION(0);
+    //mr |= (0 << US_MR_FILTER_Pos);
+            
+    // Calculate baud rate register value
+    baud_cd = ((VARIANT_MCK) / baudRate / 8 / (2 - CONF_USART_OVER));
+    baud_fp = ((VARIANT_MCK) / baudRate / (2 - CONF_USART_OVER) - 8 * baud_cd);
+    brgr |= US_BRGR_CD(baud_cd);
+    brgr |= US_BRGR_FP(baud_fp);
+            
+    // Write registers
+    _usart->US_MR = mr;
+    _usart->US_BRGR = brgr;
+
+    // Configure interrupts
+    _usart->US_IDR = 0xFFFFFFFF;
+    _usart->US_IER = US_IER_RXRDY | US_IER_OVRE | US_IER_FRAME;
+
+    // Make sure both ring buffers are initialized back to empty.
+    _rx_buffer.clear();
+    _tx_buffer.clear();
+
+    // Enable receiver and transmitter
+    _usart->US_CR = US_CR_RXEN | US_CR_TXEN;
 }
 
-void SAMSerial::begin(const uint32_t ulBaudrate)
+void SAMSerial::begin(const uint32_t baudRate)
 {
-    init(ulBaudrate, SERIAL_8N1);
+    init(baudRate, SERIAL_8N1);
 }
 
-void SAMSerial::begin(const uint32_t ulBaudrate, const UARTModes mode)
+void SAMSerial::begin(const uint32_t baudRate, const UARTModes mode)
 {
-    init(ulBaudrate, mode);
+    init(baudRate, mode);
 }
 
 void SAMSerial::end( void )
@@ -203,26 +188,26 @@ void SAMSerial::end( void )
     _usart->US_IER = 0;
 
     // Disable UART interrupt in NVIC
-    NVIC_DisableIRQ(_IdNVIC);
-    NVIC_ClearPendingIRQ(_IdNVIC);
+    NVIC_DisableIRQ(_irqn);
+    NVIC_ClearPendingIRQ(_irqn);
 
     // Dynamic assignment of IRQ handler
-    vectorReset(_IdNVIC);
+    vectorReset(_irqn);
 
     /* Remove clock of Serial peripheral
     * All UART/USART peripheral ids are below 32, so on PCDR0
     */
-    _pmc_disable_periph_clock(_uc_clockId);
+    _pmc_disable_periph_clock(_clockId);
 }
 
 void SAMSerial::setInterruptPriority(uint32_t priority)
 {
-    NVIC_SetPriority(_IdNVIC, priority & 0x0F);
+    NVIC_SetPriority(_irqn, priority & 0x0F);
 }
 
 uint32_t SAMSerial::getInterruptPriority()
 {
-    return NVIC_GetPriority(_IdNVIC);
+    return NVIC_GetPriority(_irqn);
 }
 
 int SAMSerial::available(void)

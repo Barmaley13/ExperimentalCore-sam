@@ -11,8 +11,8 @@
 
 #include "CoreSPI.hpp"
 
-SPIClass::SPIClass(Spi *_spi, uint32_t _id, uint32_t _defaultSS, void(*_initCb)(void)) :
-  spi(_spi), id(_id), defaultSS(_defaultSS), initCb(_initCb), initialized(false)
+SPIClass::SPIClass(Spi *_spi, uint32_t _defaultSS, void(*_initCb)(void)) :
+  spi(_spi), defaultSS(_defaultSS), initCb(_initCb), initialized(false)
 {
   // Empty
 }
@@ -328,6 +328,6 @@ static void SPI_0_Init(void)
 #endif // 0
 }
 
-SPIClass SPI(SPI_INTERFACE, SPI_INTERFACE_ID, SS, SPI_0_Init);
+SPIClass SPI(SPI_INTERFACE, SS, SPI_0_Init);
 #endif // SPI_INTERFACES_COUNT
 

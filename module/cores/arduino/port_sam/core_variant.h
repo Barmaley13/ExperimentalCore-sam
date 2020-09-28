@@ -152,7 +152,7 @@ typedef enum _PortNumber
 	#define NUM_FLEXCOM			0
 #endif
 
-extern const uint8_t FlexcomIds[NUM_FLEXCOM];
+extern const uint8_t FLEXCOM_IDS[NUM_FLEXCOM];
 
 
 typedef struct _Port

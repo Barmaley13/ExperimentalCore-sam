@@ -113,63 +113,63 @@ TwoWire::TwoWire(Twi *pTwi, uint8_t uc_pinSDA, uint8_t uc_pinSCL, void (*irq_han
 
 int TwoWire::initClockNVIC(void)
 {
-  _uc_clockId = 0;
-  _IdNVIC=HardFault_IRQn ; // Dummy init to intercept potential error later
+  _clockId = 0;
+  _irqn=HardFault_IRQn ; // Dummy init to intercept potential error later
 
 #if (SAM4S_SERIES || SAM4E_SERIES || SAM3XA_SERIES)
   if(_pTwi == TWI0)
   {
-    _uc_clockId = ID_TWI0;
-    _IdNVIC = TWI0_IRQn;
+    _clockId = ID_TWI0;
+    _irqn = TWI0_IRQn;
   }
   else if(_pTwi == TWI1)
   {
-    _uc_clockId = ID_TWI1;
-    _IdNVIC = TWI1_IRQn;
+    _clockId = ID_TWI1;
+    _irqn = TWI1_IRQn;
   }
 #endif /* (SAM4S_SERIES || SAM4E_SERIES || SAM3XA_SERIES) */
 
 #if (SAMG55_SERIES)
   if(_pTwi == TWI0)
   {
-    _uc_clockId = ID_FLEXCOM0;
-    _IdNVIC = FLEXCOM0_IRQn;
+    _clockId = ID_FLEXCOM0;
+    _irqn = FLEXCOM0_IRQn;
   }
   else if(_pTwi == TWI1)
   {
-    _uc_clockId = ID_FLEXCOM1;
-    _IdNVIC = FLEXCOM1_IRQn;
+    _clockId = ID_FLEXCOM1;
+    _irqn = FLEXCOM1_IRQn;
   }
   else if(_pTwi == TWI2)
   {
-    _uc_clockId = ID_FLEXCOM2;
-    _IdNVIC = FLEXCOM2_IRQn;
+    _clockId = ID_FLEXCOM2;
+    _irqn = FLEXCOM2_IRQn;
   }
   else if(_pTwi == TWI3)
   {
-    _uc_clockId = ID_FLEXCOM3;
-    _IdNVIC = FLEXCOM3_IRQn;
+    _clockId = ID_FLEXCOM3;
+    _irqn = FLEXCOM3_IRQn;
   }
   else if(_pTwi == TWI4)
   {
-    _uc_clockId = ID_FLEXCOM4;
-    _IdNVIC = FLEXCOM4_IRQn;
+    _clockId = ID_FLEXCOM4;
+    _irqn = FLEXCOM4_IRQn;
   }
   else if(_pTwi == TWI5)
   {
-    _uc_clockId = ID_FLEXCOM5;
-    _IdNVIC = FLEXCOM5_IRQn;
+    _clockId = ID_FLEXCOM5;
+    _irqn = FLEXCOM5_IRQn;
   }
   else if(_pTwi == TWI6)
   {
-    _uc_clockId = ID_FLEXCOM6;
-    _IdNVIC = FLEXCOM6_IRQn;
+    _clockId = ID_FLEXCOM6;
+    _irqn = FLEXCOM6_IRQn;
   }
 #ifdef __SAMG55J19__
   else if(_pTwi == TWI7) // only in SAMG55J19
   {
-    _uc_clockId = ID_FLEXCOM7;
-    _IdNVIC = FLEXCOM7_IRQn;
+    _clockId = ID_FLEXCOM7;
+    _irqn = FLEXCOM7_IRQn;
   }
 #endif // __SAMG55J19__
 #endif /* (SAMG55_SERIES) */
@@ -177,27 +177,27 @@ int TwoWire::initClockNVIC(void)
 #if (SAME70_SERIES)
 #endif /* (SAME70_SERIES) */
 
-  if ( _IdNVIC == HardFault_IRQn )
+  if ( _irqn == HardFault_IRQn )
   {
     // We got a problem here
     return -1L;
   }
 
   // Setting NVIC configuration for this peripheral
-  NVIC_DisableIRQ(_IdNVIC);
-  NVIC_ClearPendingIRQ(_IdNVIC);
-  NVIC_SetPriority(_IdNVIC, (1<<__NVIC_PRIO_BITS) - 1);
-  NVIC_EnableIRQ(_IdNVIC);
+  NVIC_DisableIRQ(_irqn);
+  NVIC_ClearPendingIRQ(_irqn);
+  NVIC_SetPriority(_irqn, (1<<__NVIC_PRIO_BITS) - 1);
+  NVIC_EnableIRQ(_irqn);
 
   //Setting clock
-  if (_uc_clockId < 32)
+  if (_clockId < 32)
   {
-    PMC->PMC_PCER0 = 1 << _uc_clockId;
+    PMC->PMC_PCER0 = 1 << _clockId;
   }
 #if (SAM3XA_SERIES || SAM4S_SERIES || SAM4E_SERIES || SAMG55_SERIES)
   else
   {
-    PMC->PMC_PCER1 = 1 << (_uc_clockId-32);
+    PMC->PMC_PCER1 = 1 << (_clockId-32);
   }
 #endif
 
@@ -232,26 +232,26 @@ void TwoWire::init(void)
   initClockNVIC();
 
   // Dynamic assignment of IRQ handler
-  vectorAssign(_IdNVIC, _irq_handler);
+  vectorAssign(_irqn, _irq_handler);
 }
 
 void TwoWire::deinit(void)
 {
-  NVIC_DisableIRQ(_IdNVIC);
-  NVIC_ClearPendingIRQ(_IdNVIC);
+  NVIC_DisableIRQ(_irqn);
+  NVIC_ClearPendingIRQ(_irqn);
 
   // Dynamic assignment of IRQ handler
-  vectorAssign(_IdNVIC, NULL);
+  vectorAssign(_irqn, NULL);
 
   //Setting clock
-  if (_uc_clockId < 32)
+  if (_clockId < 32)
   {
-    PMC->PMC_PCDR0 = 1 << _uc_clockId;
+    PMC->PMC_PCDR0 = 1 << _clockId;
   }
 #if (SAM3XA_SERIES || SAM4S_SERIES || SAM4E_SERIES || SAMG55_SERIES)
   else
   {
-    PMC->PMC_PCDR1 = 1 << (_uc_clockId-32);
+    PMC->PMC_PCDR1 = 1 << (_clockId-32);
   }
 #endif
 
