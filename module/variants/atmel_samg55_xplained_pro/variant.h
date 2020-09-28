@@ -23,11 +23,13 @@
  *        Definitions
  *----------------------------------------------------------------------------*/
 
+#include "peripheral_clk_config.h"
+
 /** Frequency of the board main oscillator */
-#define VARIANT_MAINOSC   (32768ul) // This system has an on-board 32KHz oscillator
+#define VARIANT_MAINOSC   CONF_CLK_RTC_FREQUENCY // This system has an on-board 32KHz oscillator
 
 /** Master clock frequency */
-#define VARIANT_MCK       (F_CPU) //(120000000ul)
+#define VARIANT_MCK       CONF_MCK_FREQUENCY
 
 /*----------------------------------------------------------------------------
  *        Headers

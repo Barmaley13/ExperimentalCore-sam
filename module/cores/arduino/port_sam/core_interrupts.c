@@ -206,20 +206,20 @@ extern "C" {
 #endif
 
 #if defined PIOA
-void PIOA_Handler(void)
-{
-  uint32_t isr = PIOA->PIO_ISR;
-  uint32_t i;
-  for (i=0; i<32; i++, isr>>=1)
-  {
-    if ((isr & 0x1) == 0)
-      continue;
-    if (callbacksPioA[i])
-    {
-      callbacksPioA[i]();
-    }
-  }
-}
+//void PIOA_Handler(void)
+//{
+  //uint32_t isr = PIOA->PIO_ISR;
+  //uint32_t i;
+  //for (i=0; i<32; i++, isr>>=1)
+  //{
+    //if ((isr & 0x1) == 0)
+      //continue;
+    //if (callbacksPioA[i])
+    //{
+      //callbacksPioA[i]();
+    //}
+  //}
+//}
 #endif // defined PIOA
 
 #if defined PIOB
