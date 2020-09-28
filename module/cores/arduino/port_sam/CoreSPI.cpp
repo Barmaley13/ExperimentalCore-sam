@@ -140,9 +140,9 @@ void SPIClass::beginTransaction(uint8_t pin, SPISettings settings)
     }
   }
   uint32_t ch = BOARD_PIN_TO_SPI_CHANNEL(pin);
-  bitOrder[ch] = settings.border;
-  SPI_ConfigureNPCS(spi, ch, settings.config);
-  //setBitOrder(pin, settings.border);
+  bitOrder[ch] = settings.bitOrder;
+  SPI_ConfigureNPCS(spi, ch, settings._config);
+  //setBitOrder(pin, settings.bitOrder);
   //setDataMode(pin, settings.datamode);
   //setClockDivider(pin, settings.clockdiv);
 #endif // 0

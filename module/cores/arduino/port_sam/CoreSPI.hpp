@@ -57,6 +57,7 @@ enum SPITransferMode
     SPI_LAST
 };
 
+
 class SPISettings
 {
     public:
@@ -74,6 +75,25 @@ class SPISettings
 
         SPISettings() { init_AlwaysInline(4000000, MSBFIRST, SPI_MODE0); }
 
+        bool operator==(const SPISettings& rhs) const
+        {
+            if ((this->clockFreq == rhs.clockFreq) &&
+            (this->bitOrder == rhs.bitOrder) &&
+            (this->dataMode == rhs.dataMode)) {
+                return true;
+            }
+            return false;
+        }
+
+        bool operator!=(const SPISettings& rhs) const
+        {
+            return !(*this == rhs);
+        }
+
+        uint32_t getClockFreq() const {return clockFreq;}
+        uint8_t getDataMode() const {return (uint8_t)dataMode;}
+        BitOrder getBitOrder() const {return (bitOrder == MSBFIRST ? MSBFIRST : LSBFIRST);}
+
     private:
         void init_MightInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
         {
@@ -83,7 +103,7 @@ class SPISettings
         void init_AlwaysInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode) __attribute__((__always_inline__))
         {
             #if 0
-            border = bitOrder;
+            this->bitOrder = bitOrder;
             uint8_t div;
 
             if (clock < (F_CPU / 255))
@@ -101,15 +121,20 @@ class SPISettings
                     div = (F_CPU / (clock + 1)) + 1;
                 }
             }
-            config = (dataMode & 3) | SPI_CSR_CSAAT | SPI_CSR_SCBR(div) | SPI_CSR_DLYBCT(1);
+            _config = (dataMode & 3) | SPI_CSR_CSAAT | SPI_CSR_SCBR(div) | SPI_CSR_DLYBCT(1);
             #endif // 0
         }
-
-        uint32_t config;
-        BitOrder border;
+        
+        // TODO: Get rid of _config!
+        uint32_t _config;
+        
+        uint32_t clockFreq;
+        uint8_t dataMode;
+        BitOrder bitOrder;
         friend class SPIClass;
 };
 
+const SPISettings DEFAULT_SPI_SETTINGS = SPISettings();
 
 
 class SPIClass
