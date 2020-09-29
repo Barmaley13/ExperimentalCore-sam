@@ -20,12 +20,13 @@
 #ifndef _ARDUINO_CORE_CONSTANTS_H_
 #define _ARDUINO_CORE_CONSTANTS_H_
 
-#include <stdint.h> // for uint?_t types
-#include <stdbool.h> // for boolean type (re)definition, since C99
-
 #ifdef __cplusplus
 extern "C"{
 #endif // __cplusplus
+
+#include <stdint.h> // for uint?_t types
+#include <stdbool.h> // for boolean type (re)definition, since C99
+#include "utils.h"
 
 #define HIGH 0x1
 #define LOW  0x0

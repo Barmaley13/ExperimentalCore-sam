@@ -29,6 +29,7 @@
 
 // Some libraries and sketches depend on this
 // AVR stuff, assuming Arduino.h automatically includes it...
+#include "core_constants.h"
 #include "core_pgmspace.h"
 #include "core_interrupt.h"
 

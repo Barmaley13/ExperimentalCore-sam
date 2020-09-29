@@ -39,13 +39,12 @@
 
 #ifdef __cplusplus
 #include "CoreSerial.hpp"
-#include "CoreSPI.hpp"
+#include "SPI.h"
 #include "CoreWire.hpp"
 #endif // __cplusplus
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif // __cplusplus
 
 /*----------------------------------------------------------------------------
@@ -187,6 +186,8 @@ extern SAMSerial Serial2;
 
 extern TwoWire Wire;
 extern TwoWire Wire1;
+
+extern SPIClass SPI;
 
 #endif
 

@@ -12,9 +12,13 @@
 #ifndef _ARDUINO_CORE_SPI_HPP_
 #define _ARDUINO_CORE_SPI_HPP_
 
-#include "variant.h"
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+#include <stddef.h>
 #include "core_constants.h"
-#include "utils.h"
+#include "core_variant.h"
 //#include <stdio.h>
 
 // SPI_HAS_TRANSACTION means SPI has
@@ -51,7 +55,6 @@ typedef enum
     CLOCK_MODE_3 = SPI_MODE2		// CPOL : 1  | CPHA : 1
 } ClockMode;
 
-#define SPI_MAX_CLK         (min(12500000, (VARIANT_MCK/2)))
 
 enum SPITransferMode
 {
@@ -72,23 +75,16 @@ typedef enum
     SPI_CHAR_SIZE_16_BITS
 } CharSize;
 
+#ifdef __cplusplus
+}
+#endif
 
+#ifdef __cplusplus
 class SPISettings
 {
     public:
-        SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
-        {
-            if (__builtin_constant_p(clock))
-            {
-                init_AlwaysInline(clock, bitOrder, dataMode);
-            }
-            else
-            {
-                init_MightInline(clock, bitOrder, dataMode);
-            }
-        }
-
-        SPISettings() { init_AlwaysInline(4000000, MSBFIRST, SPI_MODE0); }
+        SPISettings();
+        SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode);
 
         bool operator==(const SPISettings& rhs) const
         {
@@ -110,30 +106,8 @@ class SPISettings
         BitOrder getBitOrder() const {return (bitOrder == MSBFIRST ? MSBFIRST : LSBFIRST);}
 
     private:
-        void init_MightInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
-        {
-            init_AlwaysInline(clock, bitOrder, dataMode);
-        }
-
-        void init_AlwaysInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode) __attribute__((__always_inline__))
-        {
-            this->clockFreq = (clock >= SPI_MAX_CLK ? SPI_MAX_CLK : clock);
-            this->bitOrder = (bitOrder == MSBFIRST ? MSBFIRST : LSBFIRST);
-
-            switch (dataMode)
-            {
-                case SPI_MODE0:
-                    this->dataMode = (uint8_t) CLOCK_MODE_0; break;
-                case SPI_MODE1:
-                    this->dataMode = (uint8_t) CLOCK_MODE_1; break;
-                case SPI_MODE2:
-                    this->dataMode = (uint8_t) CLOCK_MODE_2; break;
-                case SPI_MODE3:
-                    this->dataMode = (uint8_t) CLOCK_MODE_3; break;
-                default:
-                    this->dataMode = (uint8_t) CLOCK_MODE_0; break;
-            }
-        }
+        void init_MightInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode);
+        inline void init_AlwaysInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode);
         
         uint32_t clockFreq;
         BitOrder bitOrder;
@@ -193,23 +167,6 @@ class SPIClass
         uint32_t interruptMask;
 };
 
-#if SPI_INTERFACES_COUNT > 0
-extern SPIClass SPI;
-#endif
-#if SPI_INTERFACES_COUNT > 1
-extern SPIClass SPI1;
-#endif
-#if SPI_INTERFACES_COUNT > 2
-extern SPIClass SPI2;
-#endif
-#if SPI_INTERFACES_COUNT > 3
-extern SPIClass SPI3;
-#endif
-#if SPI_INTERFACES_COUNT > 4
-extern SPIClass SPI4;
-#endif
-#if SPI_INTERFACES_COUNT > 5
-extern SPIClass SPI5;
 #endif
 
 #endif // _ARDUINO_CORE_SPI_HPP_

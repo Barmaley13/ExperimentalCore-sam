@@ -9,16 +9,45 @@
  * published by the Free Software Foundation.
  */
 
-#include "CoreSPI.hpp"
+#include "SPI.h"
 #include "driver_init.h"
 #include "hpl_pmc.h"
+#include "variant.h"
+
+// Not sure why it has such a trouble including this macro...
+#ifndef min
+#define min(a,b) ((a)<(b)?(a):(b))
+#endif // min
+
+#ifndef max
+#define max(a,b) ((a)>(b)?(a):(b))
+#endif // max
 
 #define SPI_IMODE_NONE   0
 #define SPI_IMODE_EXTINT 1
 #define SPI_IMODE_GLOBAL 2
 
+#define SPI_MAX_CLK         min(12500000, (VARIANT_MCK/2))
+
 
 // Constructors ////////////////////////////////////////////////////////////////
+SPISettings::SPISettings()
+{
+    init_AlwaysInline(4000000, MSBFIRST, SPI_MODE0); 
+}
+
+SPISettings::SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
+{
+    if (__builtin_constant_p(clock))
+    {
+        init_AlwaysInline(clock, bitOrder, dataMode);
+    }
+    else
+    {
+        init_MightInline(clock, bitOrder, dataMode);
+    }
+}
+
 SPIClass::SPIClass(Spi *spi, uint32_t pinMOSI, uint32_t pinMISO, uint32_t pinSCK)
 {
     _spi = spi;
@@ -36,6 +65,31 @@ SPIClass::SPIClass(Spi *spi, uint32_t pinMOSI, uint32_t pinMISO, uint32_t pinSCK
 }
 
 // Private Methods //////////////////////////////////////////////////////////////
+void SPISettings::init_MightInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
+{
+    init_AlwaysInline(clock, bitOrder, dataMode);
+}
+
+inline void SPISettings::init_AlwaysInline(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
+{
+    this->clockFreq = (clock >= SPI_MAX_CLK ? SPI_MAX_CLK : clock);
+    this->bitOrder = (bitOrder == MSBFIRST ? MSBFIRST : LSBFIRST);
+
+    switch (dataMode)
+    {
+        case SPI_MODE0:
+            this->dataMode = (uint8_t) CLOCK_MODE_0; break;
+        case SPI_MODE1:
+            this->dataMode = (uint8_t) CLOCK_MODE_1; break;
+        case SPI_MODE2:
+            this->dataMode = (uint8_t) CLOCK_MODE_2; break;
+        case SPI_MODE3:
+            this->dataMode = (uint8_t) CLOCK_MODE_3; break;
+        default:
+            this->dataMode = (uint8_t) CLOCK_MODE_0; break;
+    }
+}
+
 void SPIClass::init()
 {   
     // Little safety guard
@@ -273,6 +327,38 @@ void SPIClass::setClockFreq(uint32_t clockFreq)
 {
     SPISettings newSettings = SPISettings(clockFreq, settings.bitOrder, settings.dataMode);
     config(newSettings);
+}
+
+byte SPIClass::transfer(uint8_t data)
+{
+    // TODO: Implement this!
+    return 0;
+}
+
+uint16_t SPIClass::transfer16(uint16_t data) {
+    //union { uint16_t val; struct { uint8_t lsb; uint8_t msb; }; } t;
+//
+    //t.val = data;
+//
+    //if (_p_sercom->getDataOrderSPI() == LSB_FIRST) {
+        //t.lsb = transfer(t.lsb);
+        //t.msb = transfer(t.msb);
+        //} else {
+        //t.msb = transfer(t.msb);
+        //t.lsb = transfer(t.lsb);
+    //}
+//
+    //return t.val;
+    return 0;
+}
+
+void SPIClass::transfer(void *buf, size_t count)
+{
+    //uint8_t *buffer = reinterpret_cast<uint8_t *>(buf);
+    //for (size_t i=0; i<count; i++) {
+        //*buffer = transfer(*buffer);
+        //buffer++;
+    //}
 }
 
 #if 0
