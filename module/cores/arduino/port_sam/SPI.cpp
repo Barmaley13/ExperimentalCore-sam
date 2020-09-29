@@ -53,13 +53,13 @@ SPIClass::SPIClass(Spi *spi, uint32_t pinMOSI, uint32_t pinMISO, uint32_t pinSCK
     _spi = spi;
     _flexcom = (Flexcom *)((uint32_t)_spi - 0x400U);
 
-    _pinMOSI = g_aPinMap[pinMOSI].ulPin;
-    _pinMISO = g_aPinMap[pinMISO].ulPin;
-    _pinSCK = g_aPinMap[pinSCK].ulPin;
+    _pinMOSI = PinMap[pinMOSI].ulPin;
+    _pinMISO = PinMap[pinMISO].ulPin;
+    _pinSCK = PinMap[pinSCK].ulPin;
 
-    _pinMOSIMux = g_aPinMap[pinMOSI].ulPinType;
-    _pinMISOMux = g_aPinMap[pinMISO].ulPinType;
-    _pinSCKMux = g_aPinMap[pinSCK].ulPinType;
+    _pinMOSIMux = PinMap[pinMOSI].ulPinType;
+    _pinMISOMux = PinMap[pinMISO].ulPinType;
+    _pinSCKMux = PinMap[pinSCK].ulPinType;
     
     _clockId = 0;
 }
@@ -248,8 +248,8 @@ void SPIClass::usingInterrupt(IRQn_Type interruptNumber)
         }
         else
         {
-            Pio *pio = g_aPinMap[interruptNumber].pPort;
-            uint32_t mask = g_aPinMap[interruptNumber].ulPin;
+            Pio *pio = PinMap[interruptNumber].pPort;
+            uint32_t mask = PinMap[interruptNumber].ulPin;
             if (pio == PIOA) 
             {
                 interruptMode |= 1;

@@ -20,8 +20,8 @@
 
 int pinPeripheral( uint32_t pin, EGPIOType ulPeripheral )
 {
-  uint32_t mask=g_aPinMap[pin].ulPin;
-  Port* pPort=(Port*)Ports+g_aPinMap[pin].iPort;
+  uint32_t mask=PinMap[pin].ulPin;
+  Port* pPort=(Port*)Ports+PinMap[pin].iPort;
 
   /* Disable interrupts on the pin(s) */
   pPort->pGPIO->PIO_IDR=mask;

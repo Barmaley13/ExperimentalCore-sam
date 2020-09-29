@@ -43,7 +43,7 @@ int pinPeripheral( uint32_t ulPin, EGPIOType ulPeripheral );
 /*
  * \brief Faster digitalRead. Assumes the pin is fully configured before.
  *
- * \param pPin         pin description, eg &g_aPinMap[ulPin]
+ * \param pPin         pin description, eg &PinMap[ulPin]
  */
 inline uint32_t digitalReadFast( const PinDescription* pPin ) __attribute__((always_inline));
 inline uint32_t digitalReadFast( const PinDescription* pPin )
@@ -59,7 +59,7 @@ inline uint32_t digitalReadFast( const PinDescription* pPin )
 /*
  * \brief Faster digitalWrite. Assumes the pin is fully configured before.
  *
- * \param pPin         pin description, eg &g_aPinMap[ulPin]
+ * \param pPin         pin description, eg &PinMap[ulPin]
  * \param ulVal        0 means LOW, any other value means HIGH
  */
 inline void digitalWriteFast( const PinDescription* pPin, uint32_t ulVal ) __attribute__((always_inline));

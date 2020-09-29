@@ -32,7 +32,7 @@ const Port Ports[NUM_PORTS]=
 /*
  * Pins descriptions
  */
-const PinDescription g_aPinMap[]=
+const PinDescription PinMap[]=
 {
 /*
  * +------------+------------------+--------+-----------------+--------------------------------------------------------------------------------------------------------

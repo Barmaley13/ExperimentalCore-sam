@@ -181,11 +181,11 @@ typedef struct _PinDescription
 } PinDescription ;
 
 /* Pins table to be instantiated into variant.cpp */
-extern const PinDescription g_aPinMap[] ;
+extern const PinDescription PinMap[] ;
 
-#define digitalPinToPort(P)        ( Ports[g_aPinMap[ulPin].iPort].pGPIO )
-#define digitalPinToBitMask(P)     ( g_aPinMap[P].ulPin )
-#define digitalPinHasPWM(P)        ( g_aPinMap[P].ulPWMChannel != NOT_ON_PWM || g_aPinMap[P].ulTCChannel != NOT_ON_TIMER )
+#define digitalPinToPort(P)        ( Ports[PinMap[ulPin].iPort].pGPIO )
+#define digitalPinToBitMask(P)     ( PinMap[P].ulPin )
+#define digitalPinHasPWM(P)        ( PinMap[P].ulPWMChannel != NOT_ON_PWM || PinMap[P].ulTCChannel != NOT_ON_TIMER )
 
 
 /**

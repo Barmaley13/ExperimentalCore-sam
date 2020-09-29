@@ -151,15 +151,17 @@ extern "C" {
   //pendSVHook();
 //}
 //
-//void SysTick_Handler(void)
-//{
-  //if (sysTickHook() != 0)
-  //{
-    //return;
-  //}
-//
-  //SysTick_DefaultHandler();
-//}
+
+void SysTick_Handler(void)
+{
+    if (sysTickHook() != 0)
+    {
+        return;
+    }
+
+    SysTick_DefaultHandler();
+}
+
 //
 ///* Exception Table */
 //__attribute__ ((section(".isr_vector")))

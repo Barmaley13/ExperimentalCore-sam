@@ -93,10 +93,10 @@ TwoWire::TwoWire(Twi *pTwi, uint8_t uc_pinSDA, uint8_t uc_pinSCL, void (*irq_han
   _irq_handler=irq_handler;
 
   _uc_pinSDA=uc_pinSDA;
-  _uc_pinSDA_mux=g_aPinMap[_uc_pinSDA].ulPinType;
+  _uc_pinSDA_mux=PinMap[_uc_pinSDA].ulPinType;
 
   _uc_pinSCL=uc_pinSCL;
-  _uc_pinSCL_mux=g_aPinMap[_uc_pinSCL].ulPinType;
+  _uc_pinSCL_mux=PinMap[_uc_pinSCL].ulPinType;
 
   _rxBufferIndex=0;
   _rxBufferLength=0;

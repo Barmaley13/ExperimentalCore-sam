@@ -113,8 +113,8 @@ void attachInterrupt(uint32_t ulPin, void (*callback)(void), uint32_t mode)
   }
 
   // Retrieve pin information
-  Pio *pio = Ports[g_aPinMap[ulPin].iPort].pGPIO;
-  uint32_t mask = g_aPinMap[ulPin].ulPin;
+  Pio *pio = Ports[PinMap[ulPin].iPort].pGPIO;
+  uint32_t mask = PinMap[ulPin].ulPin;
   uint32_t pos = 0;
 
   uint32_t t;
@@ -198,7 +198,7 @@ void attachInterrupt(uint32_t ulPin, void (*callback)(void), uint32_t mode)
 void detachInterrupt(uint32_t ulPin)
 {
   // Disable interrupt
-  Ports[g_aPinMap[ulPin].iPort].pGPIO->PIO_IDR = g_aPinMap[ulPin].ulPin;
+  Ports[PinMap[ulPin].iPort].pGPIO->PIO_IDR = PinMap[ulPin].ulPin;
 }
 
 #ifdef __cplusplus

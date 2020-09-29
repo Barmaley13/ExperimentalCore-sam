@@ -66,10 +66,10 @@ uint32_t analogRead(uint32_t ulPin)
   if (ulPin < A0)
     ulPin += A0;
 
-  ulChannel = g_aPinMap[ulPin].ulADCChannelNumber ;
+  ulChannel = PinMap[ulPin].ulADCChannelNumber ;
 
 #if defined __SAM3U4E__
-  switch ( g_aPinMap[ulPin].ulAnalogChannel )
+  switch ( PinMap[ulPin].ulAnalogChannel )
   {
     // Handling ADC 10 bits channels
     case ADC0 :
@@ -140,7 +140,7 @@ uint32_t analogRead(uint32_t ulPin)
 
 #if defined __SAM3X8E__ || defined __SAM3X8H__
   static uint32_t latestSelectedChannel = -1;
-  switch ( g_aPinMap[ulPin].ulAnalogChannel )
+  switch ( PinMap[ulPin].ulAnalogChannel )
   {
     // Handling ADC 12 bits channels
     case ADC0 :
@@ -212,7 +212,7 @@ void analogOutputInit(void)
 static void analogWriteDAC(uint32_t ulPin, uint32_t ulValue)
 {
 #if 0
-  EAnalogChannel channel = g_aPinMap[ulPin].ulADCChannelNumber;
+  EAnalogChannel channel = PinMap[ulPin].ulADCChannelNumber;
   if (channel == DA0 || channel == DA1)
   {
     uint32_t chDACC = ((channel == DA0) ? 0 : 1);
@@ -275,14 +275,14 @@ static void analogWritePWM(uint32_t ulPin, uint32_t ulValue)
     PWMEnabled = 1;
   }
 
-  uint32_t chan = g_aPinMap[ulPin].ulPWMChannel;
+  uint32_t chan = PinMap[ulPin].ulPWMChannel;
   if (!pinEnabled[ulPin])
   {
     // Setup PWM for this pin
-    PIO_Configure(g_aPinMap[ulPin].pPort,
-        g_aPinMap[ulPin].ulPinType,
-        g_aPinMap[ulPin].ulPin,
-        g_aPinMap[ulPin].ulPinConfiguration);
+    PIO_Configure(PinMap[ulPin].pPort,
+        PinMap[ulPin].ulPinType,
+        PinMap[ulPin].ulPin,
+        PinMap[ulPin].ulPinConfiguration);
     PWMC_ConfigureChannel(PWM_INTERFACE, chan, PWM_CMR_CPRE_CLKA, 0, 0);
     PWMC_SetPeriod(PWM_INTERFACE, chan, PWM_MAX_DUTY_CYCLE);
     PWMC_SetDutyCycle(PWM_INTERFACE, chan, ulValue);
@@ -306,7 +306,7 @@ static void analogWriteTimer(uint32_t ulPin, uint32_t ulValue)
   ulValue = ulValue / TC_MAX_DUTY_CYCLE;
 
   // Setup Timer for this pin
-  ETCChannel channel = g_aPinMap[ulPin].ulTCChannel;
+  ETCChannel channel = PinMap[ulPin].ulTCChannel;
   static const uint32_t channelToChNo[] = { 0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2 };
   static const uint32_t channelToAB[]   = { 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0 };
   static Tc *channelToTC[] = {
@@ -355,10 +355,10 @@ static void analogWriteTimer(uint32_t ulPin, uint32_t ulValue)
 
   if (!pinEnabled[ulPin])
   {
-    PIO_Configure(g_aPinMap[ulPin].pPort,
-        g_aPinMap[ulPin].ulPinType,
-        g_aPinMap[ulPin].ulPin,
-        g_aPinMap[ulPin].ulPinConfiguration);
+    PIO_Configure(PinMap[ulPin].pPort,
+        PinMap[ulPin].ulPinType,
+        PinMap[ulPin].ulPin,
+        PinMap[ulPin].ulPinConfiguration);
     pinEnabled[ulPin] = 1;
   }
 
@@ -376,19 +376,19 @@ static void analogWriteTimer(uint32_t ulPin, uint32_t ulValue)
 // to digital output.
 void analogWrite(uint32_t ulPin, uint32_t ulValue)
 {
-  if (g_aPinMap[ulPin].ulADCChannelNumber == NOT_ON_ANALOG)
+  if (PinMap[ulPin].ulADCChannelNumber == NOT_ON_ANALOG)
   {
     analogWriteDAC(ulPin, ulValue);
   }
   else
   {
-    if (g_aPinMap[ulPin].ulPWMChannel == NOT_ON_PWM)
+    if (PinMap[ulPin].ulPWMChannel == NOT_ON_PWM)
     {
       analogWritePWM(ulPin, ulValue);
     }
     else
     {
-      if (g_aPinMap[ulPin].ulTimerChannel == NOT_ON_TIMER)
+      if (PinMap[ulPin].ulTimerChannel == NOT_ON_TIMER)
       {
         analogWriteTimer(ulPin, ulValue);
       }

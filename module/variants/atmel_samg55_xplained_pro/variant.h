@@ -52,7 +52,7 @@ extern "C" {
  *----------------------------------------------------------------------------*/
 
 // Number of pins defined in PinDescription array
-#define PINS_COUNT           (20ul) //(35ul) //(sizeof(g_aPinMap)/sizeof(g_aPinMap[0]))
+#define PINS_COUNT           (35ul) //(sizeof(PinMap)/sizeof(PinMap[0]))
 #define NUM_DIGITAL_PINS     (27ul)
 #define NUM_ANALOG_INPUTS    (4ul)
 #define NUM_ANALOG_OUTPUTS   (0ul)
@@ -70,7 +70,7 @@ extern "C" {
  */
 // #define portModeRegister(port)   ( &(port->PIO_OSR) )
 
-#define digitalPinHasPWM(P)        ( g_aPinMap[P].ulPWMChannel != NOT_ON_PWM || g_aPinMap[P].ulTCChannel != NOT_ON_TIMER )
+#define digitalPinHasPWM(P)        ( PinMap[P].ulPWMChannel != NOT_ON_PWM || PinMap[P].ulTCChannel != NOT_ON_TIMER )
 
 /*
  * digitalPinToTimer(..) is AVR-specific and is not defined for SAM

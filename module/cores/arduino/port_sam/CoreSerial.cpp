@@ -35,11 +35,11 @@ SAMSerial::SAMSerial(Usart *usart, uint32_t pinRX, uint32_t pinTX, void (*irq_ha
     _usart = usart;
     _flexcom = (Flexcom *)((uint32_t)_usart - 0x200U);
 
-    _pinRX = g_aPinMap[pinRX].ulPin;
-    _pinTX = g_aPinMap[pinTX].ulPin;
+    _pinRX = PinMap[pinRX].ulPin;
+    _pinTX = PinMap[pinTX].ulPin;
 
-    _pinRXMux = g_aPinMap[pinRX].ulPinType;
-    _pinTXMux = g_aPinMap[pinTX].ulPinType;
+    _pinRXMux = PinMap[pinRX].ulPinType;
+    _pinTXMux = PinMap[pinTX].ulPinType;
     
     _irqn = HardFault_IRQn;
     _clockId = 0;

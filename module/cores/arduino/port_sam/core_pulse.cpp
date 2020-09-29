@@ -33,7 +33,7 @@ uint32_t pulseIn( uint32_t pin, uint32_t state, uint32_t timeout )
 	// cache the port and bit of the pin in order to speed up the
 	// pulse width measuring loop and achieve finer resolution.  calling
 	// digitalRead() instead yields much coarser resolution.
-	const PinDescription* p = &g_aPinMap[pin];
+	const PinDescription* p = &PinMap[pin];
 	uint32_t width = 0; // keep initialization out of time critical area
 
 	// convert the timeout from microseconds to a number of times through

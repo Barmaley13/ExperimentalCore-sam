@@ -33,12 +33,15 @@ extern "C"{
 
 typedef enum _PinMode
 {
-  INPUT=0,
-  OUTPUT,
-  INPUT_PULLUP,
-  INPUT_PULLDOWN,
-  INPUT_OPENDRAIN_EXTERNAL,
-  INPUT_OPENDRAIN_PULLUP,
+    INPUT=0,
+    OUTPUT,
+    INPUT_PULLUP,
+    INPUT_PULLDOWN,
+    INPUT_OPENDRAIN_EXTERNAL,
+    INPUT_OPENDRAIN_PULLUP,
+    OUTPUT_PULLUP,
+    OUTPUT_PULLDOWN,
+    INPUT_OFF
 } PinMode;
 
 // boolean alias of bool possible only with STDBOOL from C99
