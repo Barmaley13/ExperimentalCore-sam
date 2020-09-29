@@ -209,3 +209,5 @@ static void Wire1_Handler(void)
 }
 
 TwoWire Wire1(WIRE1_INTERFACE, PIN_WIRE1_SDA, PIN_WIRE1_SCL, Wire1_Handler);
+
+SPIClass SPI(SPI_INTERFACE, MOSI, MISO, SCK);
