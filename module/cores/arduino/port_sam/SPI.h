@@ -122,7 +122,7 @@ class SPIClass
     public:
         SPIClass(Spi *spi, uint32_t pinMOSI, uint32_t pinMISO, uint32_t pinSCK);
 
-        byte transfer(uint8_t data);
+        uint8_t transfer(uint8_t data);
         uint16_t transfer16(uint16_t data);
         void transfer(void *buf, size_t count);
 
@@ -140,12 +140,14 @@ class SPIClass
         void end(void);
 
         void setBitOrder(BitOrder bitOrder);
-        void setDataMode(uint8_t uc_mode);
+        void setDataMode(uint8_t dataMode);
         void setClockFreq(uint32_t clockFreq);
 
     private:
         void init();
         int32_t config(SPISettings settings);
+        bool spi_rx(uint8_t *rx_data);
+        bool spi_tx(uint8_t tx_data);
 
         Spi *_spi;
         Flexcom* _flexcom;

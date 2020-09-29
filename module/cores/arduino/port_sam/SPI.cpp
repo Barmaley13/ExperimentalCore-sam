@@ -288,11 +288,32 @@ void SPIClass::notUsingInterrupt(IRQn_Type interruptNumber)
 
 void SPIClass::beginTransaction(SPISettings settings)
 {
-    // TODO: Implement this!
+    //if (interruptMode != SPI_IMODE_NONE)
+    //{
+        //if (interruptMode & SPI_IMODE_GLOBAL)
+        //{
+            //interruptSave = interruptsStatus();
+            //noInterrupts();
+        //}
+        //else if (interruptMode & SPI_IMODE_EXTINT)
+        //EIC->INTENCLR.reg = EIC_INTENCLR_EXTINT(interruptMask);
+    //}
+
+    config(settings);
 }
 
 void SPIClass::endTransaction(void)
 {
+    //if (interruptMode != SPI_IMODE_NONE)
+    //{
+        //if (interruptMode & SPI_IMODE_GLOBAL)
+        //{
+            //if (interruptSave)
+            //interrupts();
+        //}
+        //else if (interruptMode & SPI_IMODE_EXTINT)
+        //EIC->INTENSET.reg = EIC_INTENSET_EXTINT(interruptMask);
+    //}
 #if 0
     uint8_t mode = interruptMode;
     if (mode > 0)
@@ -329,36 +350,93 @@ void SPIClass::setClockFreq(uint32_t clockFreq)
     config(newSettings);
 }
 
-byte SPIClass::transfer(uint8_t data)
+bool SPIClass::spi_rx(uint8_t *rx_data)
 {
-    // TODO: Implement this!
-    return 0;
+    // Check incoming data
+    if (!(_spi->SPI_SR & SPI_SR_RDRF))
+        return false;
+    
+    // Read receive register (16 bit value)
+    uint32_t _rx_data = (_spi->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;    
+
+    // Cast to byte by discarding unused bits
+    rx_data =  (uint8_t *) _rx_data;
+    return true;
 }
 
-uint16_t SPIClass::transfer16(uint16_t data) {
-    //union { uint16_t val; struct { uint8_t lsb; uint8_t msb; }; } t;
-//
-    //t.val = data;
-//
-    //if (_p_sercom->getDataOrderSPI() == LSB_FIRST) {
-        //t.lsb = transfer(t.lsb);
-        //t.msb = transfer(t.msb);
-        //} else {
-        //t.msb = transfer(t.msb);
-        //t.lsb = transfer(t.lsb);
-    //}
-//
-    //return t.val;
-    return 0;
+bool SPIClass::spi_tx(uint8_t tx_data)
+{
+    // Wait till hw is ready
+    if (!(_spi->SPI_SR & SPI_SR_TDRE))
+        return false;
+    
+    // Write byte to shift register
+    _spi->SPI_TDR = tx_data;
+
+    // Wait till transmit is done
+    while (!(_spi->SPI_SR & SPI_SR_TXEMPTY)){};
+
+    return true;
+}
+
+byte SPIClass::transfer(uint8_t tx_data)
+{
+    uint8_t rx_data = 0;
+    
+    // Check if spi has been enabled!    
+    if (!(_spi->SPI_SR & SPI_SR_SPIENS))
+    {
+        // Nope!
+        return rx_data;
+    }
+
+    // Clear incoming register (just in case)
+    spi_rx(&rx_data);
+    
+    // Send data
+    while (!(spi_tx(tx_data))){};
+
+    // Check for errors
+    if (_spi->SPI_SR & SPI_SR_OVRES)
+    {
+        // Overflow!
+        return rx_data;
+    }
+
+    // Receive data
+    while (!(spi_rx(&rx_data))){};
+
+	return rx_data;
+}
+
+uint16_t SPIClass::transfer16(uint16_t data)
+{
+    union { uint16_t val; struct { uint8_t lsb; uint8_t msb; }; } t;
+
+    t.val = data;
+
+    if (settings.bitOrder == LSBFIRST)
+    {
+        t.lsb = transfer(t.lsb);
+        t.msb = transfer(t.msb);
+    } 
+    else 
+    {
+        t.msb = transfer(t.msb);
+        t.lsb = transfer(t.lsb);
+    }
+
+    return t.val;
 }
 
 void SPIClass::transfer(void *buf, size_t count)
 {
-    //uint8_t *buffer = reinterpret_cast<uint8_t *>(buf);
-    //for (size_t i=0; i<count; i++) {
-        //*buffer = transfer(*buffer);
-        //buffer++;
-    //}
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(buf);
+    for (size_t i=0; i<count; i++)
+    {
+        *buffer = transfer(*buffer);
+        buffer++;
+    }
 }
 
 #if 0

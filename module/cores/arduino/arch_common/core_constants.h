@@ -97,6 +97,8 @@ enum BitOrder {
 
 #define interrupts() __enable_irq()
 #define noInterrupts() __disable_irq()
+#define sei() interrupts()
+#define cli() noInterrupts()
 
 #define lowByte(w) ((uint8_t) ((w) & 0xff))
 #define highByte(w) ((uint8_t) ((w) >> 8))
