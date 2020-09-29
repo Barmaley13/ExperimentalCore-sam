@@ -136,23 +136,9 @@ typedef enum _PortNumber
   NUM_PORTS // Number of declared I/O controllers
 } PortNumber ;
 
-
-#if (SAM4S_SERIES || SAM4E_SERIES)
-	#define NUM_FLEXCOM			2
-#elif SAM3XA_SERIES
-	#define NUM_FLEXCOM			3
-#elif SAME70_SERIES
-	#define NUM_FLEXCOM			5
-#elif __SAMG55J19__
-	// only in SAMG55J19
-	#define NUM_FLEXCOM			8
-#elif SAMG55_SERIES
-	#define NUM_FLEXCOM			7
-#else
-	#define NUM_FLEXCOM			0
-#endif
-
-extern const uint8_t FLEXCOM_IDS[NUM_FLEXCOM];
+extern const Flexcom *FLEXCOMS[FLEXCOM_INST_NUM];
+extern const uint8_t FLEXCOM_IDS[FLEXCOM_INST_NUM];
+extern const IRQn_Type FLEXCOM_IRQNS[FLEXCOM_INST_NUM];
 
 
 typedef struct _Port
@@ -165,7 +151,6 @@ extern const Port Ports[NUM_PORTS];
 
 typedef enum _EExt_Interrupts
 {
-
   EXTERNAL_NUM_INTERRUPTS,
   NOT_AN_INTERRUPT = -1,
   EXTERNAL_INT_NONE = NOT_AN_INTERRUPT,

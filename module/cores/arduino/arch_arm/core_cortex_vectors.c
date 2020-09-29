@@ -209,7 +209,7 @@ void vectorAssign(IRQn_Type IRQn, void (*isr)(void))
     // Reference:    
     // https://www.keil.com/pack/doc/CMSIS/Core/html/using_VTOR_pg.html
     uint32_t i;
-    uint32_t *vectors = &exception_table;
+    uint32_t *vectors = (uint32_t *) &exception_table;
 
     for (i = 0; i < VECTORTABLE_SIZE; i++) {
         vectors_ram[i] = vectors[i];       /* copy vector table to RAM */

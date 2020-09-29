@@ -32,7 +32,7 @@ class SAMSerial : public HardwareSerial
     SAMSerial(Usart* usart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void));
 
     void begin(const uint32_t baudRate);
-    void begin(const uint32_t baudRate, const UARTModes config);
+    void begin(const uint32_t baudRate, const UARTModes mode);
     void end(void);
     int available(void);
     int availableForWrite(void);
@@ -50,7 +50,8 @@ class SAMSerial : public HardwareSerial
     operator bool() { return true; }; // UART always active
 
   protected:
-    void init(const uint32_t baudRate, const UARTModes ulMode);
+    void init(const uint32_t baudRate, const UARTModes mode);
+    void config(const uint32_t baudRate, const UARTModes mode);
 
     RingBuffer _rx_buffer;
     RingBuffer _tx_buffer;

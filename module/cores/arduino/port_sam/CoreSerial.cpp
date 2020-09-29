@@ -26,60 +26,69 @@
 #include "hpl_pmc.h"
 #include "hpl_usart_async.h"
 #include "variant.h"
+#include "log.h"
+
 
 // Constructors ////////////////////////////////////////////////////////////////
-
 SAMSerial::SAMSerial(Usart *usart, uint32_t pinRX, uint32_t pinTX, void (*irq_handler)(void))
 {
-    _usart=usart;
+    _usart = usart;
     _flexcom = (Flexcom *)((uint32_t)_usart - 0x200U);
 
-    _pinRX=g_aPinMap[pinRX].ulPin;
-    _pinTX=g_aPinMap[pinTX].ulPin;
+    _pinRX = g_aPinMap[pinRX].ulPin;
+    _pinTX = g_aPinMap[pinTX].ulPin;
 
-    _pinRXMux=g_aPinMap[pinRX].ulPinType;
-    _pinTXMux=g_aPinMap[pinTX].ulPinType;
+    _pinRXMux = g_aPinMap[pinRX].ulPinType;
+    _pinTXMux = g_aPinMap[pinTX].ulPinType;
     
-    _irqn = static_cast<IRQn_Type>(_usart_get_irq_num(_usart));
+    _irqn = HardFault_IRQn;
     _clockId = 0;
 
-    _irq_handler= irq_handler;
+    _irq_handler = irq_handler;
 }
 
-// Public Methods //////////////////////////////////////////////////////////////
+// Private Methods //////////////////////////////////////////////////////////////
 void SAMSerial::init(const uint32_t baudRate, const UARTModes mode)
+{
+    // Figure out FLEXCOM index
+    uint8_t flexcomIndex = 0;
+    for (flexcomIndex = 0; flexcomIndex <= FLEXCOM_INST_NUM; flexcomIndex++)
+    {
+        // Houston, we got a problem!
+        if (flexcomIndex >= FLEXCOM_INST_NUM)
+            return;
+        // Index is found!
+        else if (_flexcom == FLEXCOMS[flexcomIndex])
+            break;
+    }
+
+    // Dynamic assignment of IRQ handler
+    _irqn = FLEXCOM_IRQNS[flexcomIndex];
+    vectorAssign(_irqn, _irq_handler);
+
+    // Activate Serial peripheral clock
+    _clockId = FLEXCOM_IDS[flexcomIndex];
+    _pmc_enable_periph_clock(_clockId);
+    
+    // PIO init
+    gpio_set_pin_function(_pinRX, _pinRXMux);
+    gpio_set_pin_function(_pinTX, _pinTXMux);
+    
+    // Init USART in async fashion
+    struct _usart_async_device dev;
+    _usart_async_init(&dev, _flexcom);
+    
+    // Configure baud rate and UART mode    
+    config(baudRate, mode);
+}
+
+void SAMSerial::config(const uint32_t baudRate, const UARTModes mode)
 {
     uint32_t mr = 0;
     uint32_t brgr = 0;
     uint32_t baud_cd = 0;
     uint32_t baud_fp = 0;
 
-    // Figure out IRQn and clock ID
-    uint8_t usartIndex = _usart_get_hardware_index(_usart);
-
-    // We got a problem here
-    if (_irqn == 0 || usartIndex >= NUM_FLEXCOM)
-    {
-        // Dummy init to intercept potential error later
-        _irqn = HardFault_IRQn;
-        
-        // Houston we got a problem
-        return;
-    }
-
-    // Dynamic assignment of IRQ handler
-    vectorAssign(_irqn, _irq_handler);
-
-    // Activate Serial peripheral clock
-    _clockId = FLEXCOM_IDS[usartIndex];
-    _pmc_enable_periph_clock(_clockId);
-
-    gpio_set_pin_function(_pinRX, _pinRXMux);
-    gpio_set_pin_function(_pinTX, _pinTXMux);
-    
-    struct _usart_async_device dev;
-    _usart_async_init(&dev, _flexcom);
-    
     // Configure mode
     switch ( mode & HARDSER_PARITY_MASK)
     {
@@ -166,6 +175,7 @@ void SAMSerial::init(const uint32_t baudRate, const UARTModes mode)
     _usart->US_CR = US_CR_RXEN | US_CR_TXEN;
 }
 
+// Public Methods //////////////////////////////////////////////////////////////
 void SAMSerial::begin(const uint32_t baudRate)
 {
     init(baudRate, SERIAL_8N1);
@@ -194,10 +204,10 @@ void SAMSerial::end( void )
     // Dynamic assignment of IRQ handler
     vectorReset(_irqn);
 
-    /* Remove clock of Serial peripheral
-    * All UART/USART peripheral ids are below 32, so on PCDR0
-    */
+    // Deactivate Serial peripheral clock
     _pmc_disable_periph_clock(_clockId);
+    
+    // TODO: Deinit pins?
 }
 
 void SAMSerial::setInterruptPriority(uint32_t priority)
