@@ -11,7 +11,6 @@
 
 #include "SPI.h"
 #include "driver_init.h"
-#include "hpl_pmc.h"
 #include "variant.h"
 
 // Not sure why it has such a trouble including this macro...
@@ -114,7 +113,7 @@ void SPIClass::init()
 
     // Activate Serial peripheral clock
     _clockId = FLEXCOM_IDS[flexcomIndex];
-    _pmc_enable_periph_clock(_clockId);
+    pmc_enable_periph_clock(_clockId);
     
     // PIO init
     gpio_set_pin_function(_pinMOSI, _pinMOSI);
@@ -215,6 +214,11 @@ void SPIClass::end()
     // Disable SPI
     _spi->SPI_CR = SPI_CR_SPIDIS;
 
+    // Deactivate Serial peripheral clock
+    pmc_disable_periph_clock(_clockId);
+    
+    // TODO: Deinit pins?
+    
     initialized = false;
 }
 

@@ -23,7 +23,6 @@
 #include "core_private.h"
 #include "core_cortex_vectors.h"
 #include "driver_init.h"
-#include "hpl_pmc.h"
 #include "hpl_usart_async.h"
 #include "variant.h"
 #include "log.h"
@@ -68,7 +67,7 @@ void SAMSerial::init(const uint32_t baudRate, const UARTModes mode)
 
     // Activate Serial peripheral clock
     _clockId = FLEXCOM_IDS[flexcomIndex];
-    _pmc_enable_periph_clock(_clockId);
+    pmc_enable_periph_clock(_clockId);
     
     // PIO init
     gpio_set_pin_function(_pinRX, _pinRXMux);
@@ -205,7 +204,7 @@ void SAMSerial::end( void )
     vectorReset(_irqn);
 
     // Deactivate Serial peripheral clock
-    _pmc_disable_periph_clock(_clockId);
+    pmc_disable_periph_clock(_clockId);
     
     // TODO: Deinit pins?
 }
