@@ -31,11 +31,11 @@
 
 
 // Constructors ////////////////////////////////////////////////////////////////
-SPISettings::SPISettings()
+SPISettings::SPISettings() 
 {
-    init_AlwaysInline(4000000, MSBFIRST, SPI_MODE0); 
+    init_AlwaysInline(4000000, MSBFIRST, SPI_MODE0);
 }
-
+    
 SPISettings::SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode)
 {
     if (__builtin_constant_p(clock))
@@ -108,12 +108,6 @@ void SPIClass::init()
             break;
     }
     
-    // Set private attributes
-    interruptMode = SPI_IMODE_NONE;
-    interruptSave = 0;
-    interruptMask = 0;
-    initialized = true;
-
     // Dynamic assignment of IRQ handler
     _irqn = FLEXCOM_IRQNS[flexcomIndex];
     // vectorAssign(_irqn, _irq_handler);
@@ -130,11 +124,18 @@ void SPIClass::init()
     // Config spi in sync fashion
     config(DEFAULT_SPI_SETTINGS);
 
+    // Set private attributes
+    interruptMode = SPI_IMODE_NONE;
+    interruptSave = 0;
+    interruptMask = 0;
+    initialized = true;
+
 }
 
 int32_t SPIClass::config(SPISettings settings)
 {
-    if (this->settings != settings) {
+    if (this->settings != settings || !initialized) 
+    {
         this->settings = settings;
         
         // Disable SPI        
@@ -231,7 +232,7 @@ static inline unsigned char __interruptsStatus(void)
 }
 #endif // interruptsStatus
 
-void SPIClass::usingInterrupt(IRQn_Type interruptNumber)
+void SPIClass::usingInterrupt(int interruptNumber)
 {
 
     // TODO: Implement this!
@@ -281,7 +282,7 @@ void SPIClass::usingInterrupt(IRQn_Type interruptNumber)
 }
 
 
-void SPIClass::notUsingInterrupt(IRQn_Type interruptNumber)
+void SPIClass::notUsingInterrupt(int interruptNumber)
 {
     // TODO: Implement this!
 }
@@ -304,6 +305,9 @@ void SPIClass::beginTransaction(SPISettings settings)
 
 void SPIClass::endTransaction(void)
 {
+    // Wait till transmit is done
+    while (!(_spi->SPI_SR & SPI_SR_TXEMPTY)){};
+
     //if (interruptMode != SPI_IMODE_NONE)
     //{
         //if (interruptMode & SPI_IMODE_GLOBAL)
@@ -373,9 +377,6 @@ bool SPIClass::spi_tx(uint8_t tx_data)
     // Write byte to shift register
     _spi->SPI_TDR = tx_data;
 
-    // Wait till transmit is done
-    while (!(_spi->SPI_SR & SPI_SR_TXEMPTY)){};
-
     return true;
 }
 
@@ -438,100 +439,6 @@ void SPIClass::transfer(void *buf, size_t count)
         buffer++;
     }
 }
-
-#if 0
-byte SPIClass::transfer(byte _pin, uint8_t _data, SPITransferMode _mode)
-{
-    uint32_t ch = BOARD_PIN_TO_SPI_CHANNEL(_pin);
-
-    // Reverse bit order
-    if (bitOrder[ch] == LSBFIRST)
-        _data = __REV(__RBIT(_data));
-    
-    uint32_t d = _data | SPI_PCS(ch);
-    if (_mode == SPI_LAST)
-        d |= SPI_TDR_LASTXFER;
-
-    // SPI_Write(_spi, _channel, _data);
-    while ((_spi->SPI_SR & SPI_SR_TDRE) == 0)
-    ;
-
-    _spi->SPI_TDR = d;
-
-    // return SPI_Read(_spi);
-    while ((_spi->SPI_SR & SPI_SR_RDRF) == 0)
-    ;
-    
-    d = _spi->SPI_RDR;
-    // Reverse bit order
-    if (bitOrder[ch] == LSBFIRST)
-        d = __REV(__RBIT(d));
-    
-    return d & 0xFF;
-}
-#endif // 0
-
-
-#if 0
-void SPIClass::transfer(byte _pin, void *_buf, size_t _count, SPITransferMode _mode)
-{
-    if (_count == 0)
-        return;
-
-    uint8_t *buffer = (uint8_t *)_buf;
-    if (_count == 1)
-    {
-        *buffer = transfer(_pin, *buffer, _mode);
-        return;
-    }
-
-    uint32_t ch = BOARD_PIN_TO_SPI_CHANNEL(_pin);
-    bool reverse = (bitOrder[ch] == LSBFIRST);
-
-    // Send the first byte
-    uint32_t d = *buffer;
-    if (reverse)
-        d = __REV(__RBIT(d));
-    
-    while ((_spi->SPI_SR & SPI_SR_TDRE) == 0)
-    ;
-    _spi->SPI_TDR = d | SPI_PCS(ch);
-
-    while (_count > 1) 
-    {
-        // Prepare next byte
-        d = *(buffer+1);
-        if (reverse)
-            d = __REV(__RBIT(d));
-        if (_count == 2 && _mode == SPI_LAST)
-            d |= SPI_TDR_LASTXFER;
-
-        // Read transferred byte and send next one straight away
-        while ((_spi->SPI_SR & SPI_SR_RDRF) == 0)
-            ;
-        
-        uint8_t r = _spi->SPI_RDR;
-        _spi->SPI_TDR = d | SPI_PCS(ch);
-
-        // Save read byte
-        if (reverse)
-            r = __REV(__RBIT(r));
-
-        *buffer = r;
-        buffer++;
-        _count--;
-    }
-
-    // Receive the last transferred byte
-    while ((_spi->SPI_SR & SPI_SR_RDRF) == 0)
-        ;
-    
-    uint8_t r = _spi->SPI_RDR;
-    if (reverse)
-        r = __REV(__RBIT(r));
-    *buffer = r;
-}
-#endif // 0
 
 void SPIClass::attachInterrupt(void)
 {

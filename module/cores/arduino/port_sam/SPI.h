@@ -42,10 +42,10 @@ extern "C" {
 // SPI_HAS_NOTUSINGINTERRUPT means that SPI has notUsingInterrupt() method
 #define SPI_HAS_NOTUSINGINTERRUPT 1
 
-#define SPI_MODE0           (0x02)
-#define SPI_MODE1           (0x00)
-#define SPI_MODE2           (0x03)
-#define SPI_MODE3           (0x01)
+#define SPI_MODE0           (0x00)
+#define SPI_MODE1           (0x01)
+#define SPI_MODE2           (0x02)
+#define SPI_MODE3           (0x03)
 
 typedef enum
 {
@@ -85,7 +85,7 @@ class SPISettings
     public:
         SPISettings();
         SPISettings(uint32_t clock, BitOrder bitOrder, uint8_t dataMode);
-
+        
         bool operator==(const SPISettings& rhs) const
         {
             if ((this->clockFreq == rhs.clockFreq) &&
@@ -127,8 +127,8 @@ class SPIClass
         void transfer(void *buf, size_t count);
 
         // Transaction Functions
-        void usingInterrupt(IRQn_Type interruptNumber);
-        void notUsingInterrupt(IRQn_Type interruptNumber);
+        void usingInterrupt(int interruptNumber);
+        void notUsingInterrupt(int interruptNumber);
         void beginTransaction(SPISettings settings);
         void endTransaction(void);
 
