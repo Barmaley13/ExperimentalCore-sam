@@ -166,7 +166,7 @@ class SPIClass
         bool initialized;
         uint8_t interruptMode;
         char interruptSave;
-        uint32_t interruptMask;
+        uint32_t interruptMask[NUM_PORTS];
 };
 
 #endif

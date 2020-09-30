@@ -17,6 +17,7 @@
 */
 
 #include "core_interrupts.h"
+#include "hal_gpio.h"
 
 typedef void (*interruptCB)(void);
 
@@ -39,246 +40,253 @@ static interruptCB callbacksPioE[32];
 /* Configure PIO interrupt sources */
 static void interruptInitialize(void)
 {
-  int i;
-  for (i=0; i<32; i++)
-  {
-#if defined PIOA
-    callbacksPioA[i] = NULL;
-#endif // defined PIOA
-#if defined PIOB
-    callbacksPioB[i] = NULL;
-#endif // defined PIOB
-#if defined PIOC
-    callbacksPioC[i] = NULL;
-#endif // defined PIOC
-#if defined PIOD
-    callbacksPioD[i] = NULL;
-#endif // defined PIOD
-#if defined PIOE
-    callbacksPioE[i] = NULL;
-#endif // defined PIOE
-  }
+    int i;
+    for (i=0; i<32; i++)
+    {
+    #if defined PIOA
+        callbacksPioA[i] = NULL;
+    #endif // defined PIOA
+    #if defined PIOB
+        callbacksPioB[i] = NULL;
+    #endif // defined PIOB
+    #if defined PIOC
+        callbacksPioC[i] = NULL;
+    #endif // defined PIOC
+    #if defined PIOD
+        callbacksPioD[i] = NULL;
+    #endif // defined PIOD
+    #if defined PIOE
+        callbacksPioE[i] = NULL;
+    #endif // defined PIOE
+    }
 
 #if defined PIOA
-  PMC->PMC_PCER0 = 1 << ID_PIOA;
-  NVIC_DisableIRQ(PIOA_IRQn);
-  NVIC_ClearPendingIRQ(PIOA_IRQn);
-  NVIC_SetPriority(PIOA_IRQn, 0);
-  NVIC_EnableIRQ(PIOA_IRQn);
+    PMC->PMC_PCER0 = 1 << ID_PIOA;
+    NVIC_DisableIRQ(PIOA_IRQn);
+    NVIC_ClearPendingIRQ(PIOA_IRQn);
+    NVIC_SetPriority(PIOA_IRQn, 0);
+    NVIC_EnableIRQ(PIOA_IRQn);
 #endif // defined PIOA
 
 #if defined PIOB
-  PMC->PMC_PCER0 = 1 << ID_PIOB;
-  NVIC_DisableIRQ(PIOB_IRQn);
-  NVIC_ClearPendingIRQ(PIOB_IRQn);
-  NVIC_SetPriority(PIOB_IRQn, 0);
-  NVIC_EnableIRQ(PIOB_IRQn);
+    PMC->PMC_PCER0 = 1 << ID_PIOB;
+    NVIC_DisableIRQ(PIOB_IRQn);
+    NVIC_ClearPendingIRQ(PIOB_IRQn);
+    NVIC_SetPriority(PIOB_IRQn, 0);
+    NVIC_EnableIRQ(PIOB_IRQn);
 #endif // defined PIOB
 
 #if defined PIOC
-  PMC->PMC_PCER0 = 1 << ID_PIOC;
-  NVIC_DisableIRQ(PIOC_IRQn);
-  NVIC_ClearPendingIRQ(PIOC_IRQn);
-  NVIC_SetPriority(PIOC_IRQn, 0);
-  NVIC_EnableIRQ(PIOC_IRQn);
+    PMC->PMC_PCER0 = 1 << ID_PIOC;
+    NVIC_DisableIRQ(PIOC_IRQn);
+    NVIC_ClearPendingIRQ(PIOC_IRQn);
+    NVIC_SetPriority(PIOC_IRQn, 0);
+    NVIC_EnableIRQ(PIOC_IRQn);
 #endif // defined PIOC
 
 #if defined PIOD
-  PMC->PMC_PCER0 = 1 << ID_PIOD;
-  NVIC_DisableIRQ(PIOD_IRQn);
-  NVIC_ClearPendingIRQ(PIOD_IRQn);
-  NVIC_SetPriority(PIOD_IRQn, 0);
-  NVIC_EnableIRQ(PIOD_IRQn);
+    PMC->PMC_PCER0 = 1 << ID_PIOD;
+    NVIC_DisableIRQ(PIOD_IRQn);
+    NVIC_ClearPendingIRQ(PIOD_IRQn);
+    NVIC_SetPriority(PIOD_IRQn, 0);
+    NVIC_EnableIRQ(PIOD_IRQn);
 #endif // defined PIOD
 
 #if defined PIOE
-  PMC->PMC_PCER0 = 1 << ID_PIOE;
-  NVIC_DisableIRQ(PIOE_IRQn);
-  NVIC_ClearPendingIRQ(PIOE_IRQn);
-  NVIC_SetPriority(PIOE_IRQn, 0);
-  NVIC_EnableIRQ(PIOE_IRQn);
+    PMC->PMC_PCER0 = 1 << ID_PIOE;
+    NVIC_DisableIRQ(PIOE_IRQn);
+    NVIC_ClearPendingIRQ(PIOE_IRQn);
+    NVIC_SetPriority(PIOE_IRQn, 0);
+    NVIC_EnableIRQ(PIOE_IRQn);
 #endif // defined PIOE
 }
 
 
 void attachInterrupt(uint32_t ulPin, void (*callback)(void), uint32_t mode)
 {
-  static int enabled = 0;
+    static int enabled = 0;
 
-  /* TODO: this should be done in libc init() function array */
-  if (!enabled)
-  {
-    interruptInitialize();
-    enabled = 1;
-  }
+    /* TODO: this should be done in libc init() function array */
+    if (!enabled)
+    {
+        interruptInitialize();
+        enabled = 1;
+    }
+    
+    // Check if pin is valid
+    if (ulPin >= PINS_COUNT)
+        return;
 
-  // Retrieve pin information
-  Pio *pio = Ports[PinMap[ulPin].iPort].pGPIO;
-  uint32_t mask = PinMap[ulPin].ulPin;
-  uint32_t pos = 0;
-
-  uint32_t t;
-  for (t = mask; t>1; t>>=1, pos++)
-    ;
+    // Retrieve pin information
+    uint32_t gpio = PinMap[ulPin].ulPin;
+    Pio *pio = Ports[PinMap[ulPin].iPort].pGPIO;
+    uint32_t pos = GPIO_PIN(gpio);
+    uint32_t mask = 1 << pos;
 
   // Set callback function
 #if defined PIOA
-  if (pio == PIOA)
-  {
-    callbacksPioA[pos] = callback;
-  }
+    if (pio == PIOA)
+    {
+        callbacksPioA[pos] = callback;
+    }
 #endif // defined PIOA
 
 #if defined PIOB
-  if (pio == PIOB)
-  {
-    callbacksPioB[pos] = callback;
-  }
+    if (pio == PIOB)
+    {
+        callbacksPioB[pos] = callback;
+    }
 #endif // defined PIOB
 
 #if defined PIOC
-  if (pio == PIOC)
-  {
-    callbacksPioC[pos] = callback;
-  }
+    if (pio == PIOC)
+    {
+        callbacksPioC[pos] = callback;
+    }
 #endif // defined PIOC
 
 #if defined PIOD
-  if (pio == PIOD)
-  {
-    callbacksPioD[pos] = callback;
-  }
+    if (pio == PIOD)
+    {
+        callbacksPioD[pos] = callback;
+    }
 #endif // defined PIOD
 
 #if defined PIOE
-  if (pio == PIOE)
-  {
-    callbacksPioE[pos] = callback;
-  }
+    if (pio == PIOE)
+    {
+        callbacksPioE[pos] = callback;
+    }
 #endif // defined PIOE
 
-  // Configure the interrupt mode
-  if (mode == CHANGE)
-  {
-    // Disable additional interrupt mode (detects both rising and falling edges)
-    pio->PIO_AIMDR = mask;
-  }
-  else
-  {
-    // Enable additional interrupt mode
-    pio->PIO_AIMER = mask;
+    // Configure the interrupt mode
+    if (mode == CHANGE)
+    {
+        // Disable additional interrupt mode (detects both rising and falling edges)
+        pio->PIO_AIMDR = mask;
+    }
+    else
+    {
+        // Enable additional interrupt mode
+        pio->PIO_AIMER = mask;
 
-    // Select mode of operation
-    if (mode == LOW)
-    {
-      pio->PIO_LSR = mask;    // "Level" Select Register
-      pio->PIO_FELLSR = mask; // "Falling Edge / Low Level" Select Register
+        // Select mode of operation
+        if (mode == LOW)
+        {
+            pio->PIO_LSR = mask;    // "Level" Select Register
+            pio->PIO_FELLSR = mask; // "Falling Edge / Low Level" Select Register
+        }
+        if (mode == HIGH)
+        {
+            pio->PIO_LSR = mask;    // "Level" Select Register
+            pio->PIO_REHLSR = mask; // "Rising Edge / High Level" Select Register
+        }
+        if (mode == FALLING)
+        {
+            pio->PIO_ESR = mask;    // "Edge" Select Register
+            pio->PIO_FELLSR = mask; // "Falling Edge / Low Level" Select Register
+        }
+        if (mode == RISING)
+        {
+            pio->PIO_ESR = mask;    // "Edge" Select Register
+            pio->PIO_REHLSR = mask; // "Rising Edge / High Level" Select Register
+        }
     }
-    if (mode == HIGH)
-    {
-      pio->PIO_LSR = mask;    // "Level" Select Register
-      pio->PIO_REHLSR = mask; // "Rising Edge / High Level" Select Register
-    }
-    if (mode == FALLING)
-    {
-      pio->PIO_ESR = mask;    // "Edge" Select Register
-      pio->PIO_FELLSR = mask; // "Falling Edge / Low Level" Select Register
-    }
-    if (mode == RISING)
-    {
-      pio->PIO_ESR = mask;    // "Edge" Select Register
-      pio->PIO_REHLSR = mask; // "Rising Edge / High Level" Select Register
-    }
-  }
 
-  // Enable interrupt
-  pio->PIO_IER = mask;
+    // Enable interrupt
+    pio->PIO_IER = mask;
 }
 
 void detachInterrupt(uint32_t ulPin)
 {
-  // Disable interrupt
-  Ports[PinMap[ulPin].iPort].pGPIO->PIO_IDR = PinMap[ulPin].ulPin;
+    // Check if pin is valid
+    if (ulPin >= PINS_COUNT)
+        return;
+
+    // Retrieve pin information
+    uint32_t gpio = PinMap[ulPin].ulPin;
+    Pio *pio = Ports[PinMap[ulPin].iPort].pGPIO;
+    
+    // Disable interrupt
+    pio->PIO_IDR = 1 << GPIO_PIN(gpio);
 }
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if defined PIOA
+//#if defined PIOA
 //void PIOA_Handler(void)
 //{
-  //uint32_t isr = PIOA->PIO_ISR;
-  //uint32_t i;
-  //for (i=0; i<32; i++, isr>>=1)
-  //{
-    //if ((isr & 0x1) == 0)
-      //continue;
-    //if (callbacksPioA[i])
+    //uint32_t isr = PIOA->PIO_ISR;
+    //uint32_t i;
+    //for (i=0; i<32; i++, isr>>=1)
     //{
-      //callbacksPioA[i]();
+        //if ((isr & 0x1) == 0)
+            //continue;
+        //if (callbacksPioA[i])
+            //callbacksPioA[i]();
     //}
-  //}
 //}
-#endif // defined PIOA
+//#endif // defined PIOA
 
 #if defined PIOB
 void PIOB_Handler(void)
 {
-  uint32_t isr = PIOB->PIO_ISR;
-  uint32_t i;
-  for (i=0; i<32; i++, isr>>=1)
-  {
-    if ((isr & 0x1) == 0)
-      continue;
-    if (callbacksPioB[i])
-      callbacksPioB[i]();
-  }
+    uint32_t isr = PIOB->PIO_ISR;
+    uint32_t i;
+    for (i=0; i<32; i++, isr>>=1)
+    {
+        if ((isr & 0x1) == 0)
+            continue;
+        if (callbacksPioB[i])
+            callbacksPioB[i]();
+    }
 }
 #endif // defined PIOB
 
 #if defined PIOC
 void PIOC_Handler(void)
 {
-  uint32_t isr = PIOC->PIO_ISR;
-  uint32_t i;
-  for (i=0; i<32; i++, isr>>=1)
-  {
-    if ((isr & 0x1) == 0)
-      continue;
-    if (callbacksPioC[i])
-      callbacksPioC[i]();
-  }
+    uint32_t isr = PIOC->PIO_ISR;
+    uint32_t i;
+    for (i=0; i<32; i++, isr>>=1)
+    {
+        if ((isr & 0x1) == 0)
+            continue;
+        if (callbacksPioC[i])
+            callbacksPioC[i]();
+    }
 }
 #endif // defined PIOC
 
 #if defined PIOD
 void PIOD_Handler(void)
 {
-  uint32_t isr = PIOD->PIO_ISR;
-  uint32_t i;
-  for (i=0; i<32; i++, isr>>=1)
-  {
-    if ((isr & 0x1) == 0)
-      continue;
-    if (callbacksPioD[i])
-      callbacksPioD[i]();
-  }
+    uint32_t isr = PIOD->PIO_ISR;
+    uint32_t i;
+    for (i=0; i<32; i++, isr>>=1)
+    {
+        if ((isr & 0x1) == 0)
+            continue;
+        if (callbacksPioD[i])
+            callbacksPioD[i]();
+    }
 }
 #endif // defined PIOD
 
 #if defined PIOE
 void PIOE_Handler(void)
 {
-  uint32_t isr = PIOE->PIO_ISR;
-  uint32_t i;
-  for (i=0; i<32; i++, isr>>=1)
-  {
-    if ((isr & 0x1) == 0)
-      continue;
-    if (callbacksPioE[i])
-      callbacksPioE[i]();
-  }
+    uint32_t isr = PIOE->PIO_ISR;
+    uint32_t i;
+    for (i=0; i<32; i++, isr>>=1)
+    {
+        if ((isr & 0x1) == 0)
+            continue;
+        if (callbacksPioE[i])
+            callbacksPioE[i]();
+    }
 }
 #endif // defined PIOE
 

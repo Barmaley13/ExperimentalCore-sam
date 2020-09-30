@@ -127,7 +127,10 @@ void SPIClass::init()
     // Set private attributes
     interruptMode = SPI_IMODE_NONE;
     interruptSave = 0;
-    interruptMask = 0;
+    for(int i=0; i<NUM_PORTS; i++)
+    {
+        interruptMask[i] = 0;
+    } 
     initialized = true;
 
 }
@@ -220,85 +223,81 @@ void SPIClass::end()
 static inline unsigned char __interruptsStatus(void) __attribute__((always_inline, unused));
 static inline unsigned char __interruptsStatus(void)
 {
-  unsigned long primask, faultmask;
-
-  asm volatile ("mrs %0, primask" : "=r" (primask));
-  if (primask) return 0;
-
-  asm volatile ("mrs %0, faultmask" : "=r" (faultmask));
-  if (faultmask) return 0;
-
-  return 1;
+    // See http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/CHDBIBGJ.html
+    return (__get_PRIMASK() ? 0 : 1);
 }
-#endif // interruptsStatus
+#endif
+
 
 void SPIClass::usingInterrupt(int interruptNumber)
 {
+    if (interruptNumber == NOT_AN_INTERRUPT)
+        return;
 
-    // TODO: Implement this!
-    #if 0
-    uint8_t irestore;
-
-    irestore = interruptsStatus();
+    uint8_t irestore = interruptsStatus();
     noInterrupts();
-    if (interruptMode < 16)
+
+    if (interruptNumber >= EXTERNAL_NUM_INTERRUPTS)
+        interruptMode = SPI_IMODE_GLOBAL;
+    else
     {
-        if (interruptNumber > NUM_DIGITAL_PINS)
+        interruptMode |= SPI_IMODE_EXTINT;
+        
+        for(int i=0; i<NUM_PORTS; i++)
         {
-            interruptMode = 16;
-        }
-        else
-        {
-            Pio *pio = PinMap[interruptNumber].pPort;
-            uint32_t mask = PinMap[interruptNumber].ulPin;
-            if (pio == PIOA) 
-            {
-                interruptMode |= 1;
-                interruptMask[0] |= mask;
-            }
-            else if (pio == PIOB) 
-            {
-                interruptMode |= 2;
-                interruptMask[1] |= mask;
-            } 
-            else if (pio == PIOC) 
-            {
-                interruptMode |= 4;
-                interruptMask[2] |= mask;
-            } 
-            else if (pio == PIOD) 
-            {
-                interruptMode |= 8;
-                interruptMask[3] |= mask;
-            } 
-            else 
-            {
-                interruptMode = 16;
-            }
+            uint32_t gpio = PinMap[interruptNumber].ulPin;
+            interruptMask[i] |= (1 << GPIO_PIN(gpio));
         }
     }
-    if (irestore) interrupts();
-    #endif // 0
-}
 
+    if (irestore)
+        interrupts();
+}
 
 void SPIClass::notUsingInterrupt(int interruptNumber)
 {
-    // TODO: Implement this!
+    if (interruptNumber == NOT_AN_INTERRUPT)
+        return;
+
+    if (interruptMode & SPI_IMODE_GLOBAL)
+        return; // can't go back, as there is no reference count
+
+    uint8_t irestore = interruptsStatus();
+    noInterrupts();
+
+    uint32_t globalMask = 0;
+    for(int i=0; i<NUM_PORTS; i++)
+    {
+        uint32_t gpio = PinMap[interruptNumber].ulPin;
+        interruptMask[i] &= ~(1 << GPIO_PIN(gpio));
+        globalMask |= interruptMask[i];
+    }
+
+    if (globalMask == 0)
+        interruptMode = SPI_IMODE_NONE;
+
+    if (irestore)
+        interrupts();
 }
 
 void SPIClass::beginTransaction(SPISettings settings)
 {
-    //if (interruptMode != SPI_IMODE_NONE)
-    //{
-        //if (interruptMode & SPI_IMODE_GLOBAL)
-        //{
-            //interruptSave = interruptsStatus();
-            //noInterrupts();
-        //}
-        //else if (interruptMode & SPI_IMODE_EXTINT)
-        //EIC->INTENCLR.reg = EIC_INTENCLR_EXTINT(interruptMask);
-    //}
+    if (interruptMode != SPI_IMODE_NONE)
+    {
+        if (interruptMode & SPI_IMODE_GLOBAL)
+        {
+            interruptSave = interruptsStatus();
+            noInterrupts();
+        }
+        else if (interruptMode & SPI_IMODE_EXTINT)
+        {                        
+            Pio *pios[PIO_INST_NUM] = PIO_INSTS;
+            for(int i=0; i<NUM_PORTS; i++)
+            {
+                pios[i]->PIO_IDR = interruptMask[i];
+            }
+        }   
+    }
 
     config(settings);
 }
@@ -308,33 +307,23 @@ void SPIClass::endTransaction(void)
     // Wait till transmit is done
     while (!(_spi->SPI_SR & SPI_SR_TXEMPTY)){};
 
-    //if (interruptMode != SPI_IMODE_NONE)
-    //{
-        //if (interruptMode & SPI_IMODE_GLOBAL)
-        //{
-            //if (interruptSave)
-            //interrupts();
-        //}
-        //else if (interruptMode & SPI_IMODE_EXTINT)
-        //EIC->INTENSET.reg = EIC_INTENSET_EXTINT(interruptMask);
-    //}
-#if 0
-    uint8_t mode = interruptMode;
-    if (mode > 0)
+    if (interruptMode != SPI_IMODE_NONE)
     {
-        if (mode < 16)
+        if (interruptMode & SPI_IMODE_GLOBAL)
         {
-            if (mode & 1) PIOA->PIO_IER = interruptMask[0];
-            if (mode & 2) PIOB->PIO_IER = interruptMask[1];
-            if (mode & 4) PIOC->PIO_IER = interruptMask[2];
-            if (mode & 8) PIOD->PIO_IER = interruptMask[3];
-        } 
-        else 
+            if (interruptSave)
+            interrupts();
+        }
+        else if (interruptMode & SPI_IMODE_EXTINT)
         {
-            if (interruptSave) interrupts();
+            // TODO: Add support for other ports!
+            Pio *pios[PIO_INST_NUM] = PIO_INSTS;
+            for(int i=0; i<NUM_PORTS; i++)
+            {
+                pios[i]->PIO_IER = interruptMask[i];
+            }
         }
     }
-#endif // 0
 }
 
 void SPIClass::setBitOrder(BitOrder bitOrder)

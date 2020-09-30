@@ -16,6 +16,9 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+// Original version:
+// https://github.com/aethaniel/ExperimentalCore-sam/blob/master/module/cores/arduino/port_sam/core_digital.c
+
 #include "Arduino.h"
 
 #ifdef __cplusplus
