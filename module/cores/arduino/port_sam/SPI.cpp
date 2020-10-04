@@ -354,21 +354,21 @@ bool SPIClass::spi_rx(uint8_t *rx_data)
         return false;
     
     // Read receive register (16 bit value)
-    uint32_t _rx_data = (_spi->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;    
-
+    uint32_t _rx_data = (_spi->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;
+    
     // Cast to byte by discarding unused bits
-    rx_data =  (uint8_t *) _rx_data;
+    *rx_data = (uint8_t) _rx_data;
     return true;
 }
 
-bool SPIClass::spi_tx(uint8_t tx_data)
+bool SPIClass::spi_tx(uint8_t *tx_data)
 {
     // Wait till hw is ready
     if (!(_spi->SPI_SR & SPI_SR_TDRE))
         return false;
     
     // Write byte to shift register
-    _spi->SPI_TDR = tx_data;
+    _spi->SPI_TDR = (uint32_t) *tx_data;
 
     return true;
 }
@@ -388,7 +388,7 @@ byte SPIClass::transfer(uint8_t tx_data)
     spi_rx(&rx_data);
     
     // Send data
-    while (!(spi_tx(tx_data))){};
+    while (!(spi_tx(&tx_data)));
 
     // Check for errors
     if (_spi->SPI_SR & SPI_SR_OVRES)
@@ -398,7 +398,7 @@ byte SPIClass::transfer(uint8_t tx_data)
     }
 
     // Receive data
-    while (!(spi_rx(&rx_data))){};
+    while (!(spi_rx(&rx_data)));
 
 	return rx_data;
 }

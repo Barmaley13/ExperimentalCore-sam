@@ -147,7 +147,7 @@ class SPIClass
         void init();
         int32_t config(SPISettings settings);
         bool spi_rx(uint8_t *rx_data);
-        bool spi_tx(uint8_t tx_data);
+        bool spi_tx(uint8_t *tx_data);
 
         Spi *_spi;
         Flexcom* _flexcom;
