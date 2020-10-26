@@ -200,11 +200,11 @@ extern "C" {
     //return p;
 //}
 
-#define VECTORTABLE_SIZE        (240)
-#define VECTORTABLE_ALIGNMENT   (0x100U)    // next power of 2 = 256
+#define VT_SIZE        (240)
+#define VT_ALIGNMENT   (0x100U)    // next power of 2 = 256
 
 // new vector table in RAM, same size as vector table in ROM
-static uint32_t vectors_ram[VECTORTABLE_SIZE] __ALIGNED(VECTORTABLE_ALIGNMENT);
+static uint32_t vectors_ram[VT_SIZE] __ALIGNED(VT_ALIGNMENT);
 
 void vectorAssign(IRQn_Type IRQn, void (*isr)(void))
 {    
@@ -213,7 +213,7 @@ void vectorAssign(IRQn_Type IRQn, void (*isr)(void))
     uint32_t i;
     uint32_t *vectors = (uint32_t *) &exception_table;
 
-    for (i = 0; i < VECTORTABLE_SIZE; i++) {
+    for (i = 0; i < VT_SIZE; i++) {
         vectors_ram[i] = vectors[i];       /* copy vector table to RAM */
     }
     /* replace SysTick Handler */
